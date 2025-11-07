@@ -1,0 +1,7 @@
+unstable_features = true
+
+indent_style = "Block"
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
+fn_single_line = true
+where_single_line = true
