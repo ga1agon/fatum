@@ -2,7 +2,7 @@ pub mod opengl;
 
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{error::PlatformError, render::{PipelineKind, RenderPipeline, RenderQueue}, shader::{Shader, ShaderData, ShaderFamily, ShaderProgram}, window::Window};
+use crate::{error::PlatformError, render::{PipelineKind, RenderPipeline, RenderQueue}, shader::{Shader, ShaderData, ShaderFamily, ShaderProgram}, texture::{self, Texture2D}, window::Window};
 use bytemuck::Pod;
 use glam::UVec2;
 
@@ -27,6 +27,8 @@ pub trait GraphicsPlatform<T1, T2>
 		-> Result<Box<dyn ShaderData<D>>, PlatformError>;
 	//fn create_array_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>)
 	//	-> Result<Box<dyn ShaderData<Vec<D>>>, PlatformError>;
+
+	fn create_texture_2d(&self, image: image::DynamicImage, filter: texture::Filter, wrap_mode: texture::WrapMode, format: texture::Format) -> Result<Box<dyn Texture2D>, PlatformError>;
 
 	fn create_pipeline(&self, kind: PipelineKind) -> Box<dyn RenderPipeline>;
 }

@@ -74,8 +74,6 @@ impl Camera2D {
 			Vec4::new(-1.0, -1.0, 0.0, 1.0)
 		);
 
-		println!("{}", projection);
-
 		let inverse_projection = projection.inverse();
 
 		let view = Mat4::from_cols(
@@ -84,8 +82,6 @@ impl Camera2D {
 			Vec4::new(0.0, 0.0, 1.0, 0.0),
 			Vec4::new(-self.position.x, -self.position.y, 0.0, 1.0)
 		);
-
-		println!("{}", view);
 
 		let inverse_view = view.inverse();
 

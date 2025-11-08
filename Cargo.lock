@@ -279,6 +279,7 @@ dependencies = [
  "glam",
  "glfw",
  "glow",
+ "image",
 ]
 
 [[package]]

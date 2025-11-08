@@ -5,20 +5,23 @@ mod shader_program;
 mod shader_data;
 mod pipeline;
 mod render_target;
+mod texture_2d;
 
 use std::{cell::RefCell, hash::Hash, rc::Rc};
 
 use bytemuck::Pod;
 use glam::{UVec2, Vec2};
 use glow::HasContext;
+
 pub use window::*;
 pub use render_queue::*;
 pub use shader::*;
 pub use shader_program::*;
 pub use shader_data::*;
 pub use render_target::*;
+pub use texture_2d::*;
 
-use crate::{error::{ErrorKind, PlatformError}, platform::{GraphicsContext, GraphicsPlatform, opengl::pipeline::DefaultOpenGlPipeline}, render::{PipelineKind, RenderPipeline, RenderTarget}, shader::*, window::Window};
+use crate::{error::{ErrorKind, PlatformError}, platform::{GraphicsContext, GraphicsPlatform, opengl::pipeline::OpenGlPBRPipeline}, render::{PipelineKind, RenderPipeline, RenderTarget}, shader::*, texture, window::Window};
 use glfw::{Context, PWindow, WindowHint, WindowMode};
 
 // struct ContextWindow(Rc<PWindow>);
@@ -174,18 +177,16 @@ impl GraphicsPlatform<OpenGlContext, glow::Context> for OpenGlPlatform {
 	}
 	
 	fn create_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>) -> Result<Box<dyn ShaderData<D>>, PlatformError> {
-		let shader_data = OpenGlShaderData::new(&self.context.clone(), program, name, binding, data)?;
-		Ok(Box::new(shader_data))
+		Ok(Box::new(OpenGlShaderData::new(&self.context.clone(), program, name, binding, data)?))
 	}
-	
-	// fn create_array_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>) -> Result<Box<dyn ShaderData<Vec<D>>>, PlatformError> {
-	// 	let shader_data = OpenGlShaderArrayData::new(&self.context.clone(), program, name, binding, data)?;
-	// 	Ok(Box::new(shader_data))
-	// }
+
+	fn create_texture_2d(&self, image: image::DynamicImage, filter: texture::Filter, wrap_mode: texture::WrapMode, format: texture::Format) -> Result<Box<dyn texture::Texture2D>, PlatformError> {
+		Ok(Box::new(OglTexture2D::new(&self.context.clone(), image, filter, wrap_mode, format)?))
+	}
 	
 	fn create_pipeline(&self, kind: PipelineKind) -> Box<dyn RenderPipeline> {
 		match kind {
-			PipelineKind::Default => Box::new(DefaultOpenGlPipeline::new(&self.context.clone(), self))
+			PipelineKind::Default | PipelineKind::PBR => Box::new(OpenGlPBRPipeline::new(&self.context.clone(), self))
 		}
 	}
 }

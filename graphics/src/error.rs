@@ -10,6 +10,7 @@ pub enum ErrorKind {
 	ProgramLinkError,
 	BufferCreateError,
 	NoBufferBlockError,
+	TextureCreateError,
 }
 
 #[derive(Debug, Clone)]

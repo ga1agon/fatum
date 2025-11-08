@@ -6,6 +6,7 @@ use crate::{Camera, Color, Material, Vertex, platform::GraphicsPlatform, shader:
 
 pub enum PipelineKind {
 	Default,
+	PBR,
 }
 
 pub trait RenderPipeline {

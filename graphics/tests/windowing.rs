@@ -1,4 +1,4 @@
-use fatum_graphics::{Color, Material, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::RenderTarget, rf};
+use fatum_graphics::{Color, Material, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::RenderTarget};
 use glam::UVec2;
 use std::{cell::RefCell, rc::Rc, *};
 

@@ -5,7 +5,7 @@ use glow::HasContext;
 
 use crate::{Camera, Color, Material, Vertex, platform::{GraphicsContext, GraphicsPlatform, opengl::{OpenGlContext, OpenGlPlatform}}, render::RenderPipeline, shader::{ShaderData, ShaderFamily, ShaderProgram}};
 
-pub struct DefaultOpenGlPipeline {
+pub struct OpenGlPBRPipeline {
 	gl: Rc<glow::Context>,
 	program: Box<dyn ShaderProgram>,
 
@@ -16,7 +16,7 @@ pub struct DefaultOpenGlPipeline {
 	clear_color: Color,
 }
 
-impl DefaultOpenGlPipeline {
+impl OpenGlPBRPipeline {
 	pub fn new(context: &OpenGlContext, platform: &OpenGlPlatform) -> Self {
 		let gl = context.get();
 		
@@ -83,13 +83,29 @@ struct Vertex {
 	vec2 uv;
 };
 
+struct Material {
+	vec4 base_color;
+	float metallic;
+	float roughness;
+	float ior;
+
+	uint base_map;
+	uint metallic_map;
+	uint roughness_map;
+	uint normal_map;
+	uint displacement_map;
+};
+
 //= data
 uniform MaterialData {
-	vec4 m_albedo;
-	float m_roughness;
-	float m_metallic;
-	float m_ior;
+	Material material;
 };
+
+uniform sampler2D base_map;
+uniform sampler2D metallic_map;
+uniform sampler2D roughness_map;
+uniform sampler2D normal_map;
+uniform sampler2D displacement_map;
 //
 
 //= i/o
@@ -101,10 +117,15 @@ out vec4 fragColor;
 void main() {
 	vec2 uv = vertex.uv;
 
-	vec3 albedo = m_albedo.rgb;
+	vec4 base_color = material.base_color;
 	float opacity = 1.0;
 
-	fragColor = vec4(albedo, opacity); // simple alpha blending
+	if(material.base_map > 0u) {
+		base_color *= texture(base_map, uv).rgba;
+	}
+
+	base_color.a *= opacity;
+	fragColor = base_color;
 }
 ";
 
@@ -130,7 +151,7 @@ void main() {
 	}
 }
 
-impl RenderPipeline for DefaultOpenGlPipeline {
+impl RenderPipeline for OpenGlPBRPipeline {
 	fn begin(&mut self) {
 		self.program.bind();
 
