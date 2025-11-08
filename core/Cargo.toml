@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 fatum_graphics = { path = "../graphics" }
 fatum_resources = { path = "../resources" }
+fatum_scene = { path = "../scene", features = ["macros"] }
 glam = { version = "0.30.9", features = ["bytemuck"] }
 image = "0.25.8"
 log = "0.4.28"

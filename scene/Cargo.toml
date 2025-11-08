@@ -1,0 +1,11 @@
+[package]
+name = "fatum_scene"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+fatum_scene_macros = { path = "./macros", optional = true }
+rand = "0.9.2"
+
+[features]
+macros = ["dep:fatum_scene_macros"]
