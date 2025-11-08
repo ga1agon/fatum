@@ -1,11 +1,16 @@
+use fatum::resources::{MetaTexture2D, ResTexture2D};
 use fatum_graphics::{Camera2D, Color, Material, Mesh, Model, Vertex, Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderObject, RenderPipeline}, texture};
+use fatum_resources::Resources;
 use glam::{EulerRot, Mat4, Quat, UVec2, Vec2, Vec3};
+use simple_logger::SimpleLogger;
 use std::{fs::File, path::Path, rc::Rc, *};
 
 #[test]
 fn opengl_textures() {
+	SimpleLogger::new().init().unwrap();
+
 	let mut platform = OpenGlPlatform::new();
-	let mut window = platform.create_window("Textures", UVec2::new(800, 600))
+	let mut window = platform.create_window("Resources", UVec2::new(800, 600))
 		.unwrap();
 
 	window.show();
@@ -16,9 +21,8 @@ fn opengl_textures() {
 	let pipeline = platform.create_pipeline(PipelineKind::Default);
 	queue.set_pipeline(Some(pipeline));
 
-	let texture_image_path = Path::new(file!()).parent().unwrap().join(env!("CARGO_MANIFEST_DIR")).join("tests/trollface.png");
-	let texture_image = image::open(texture_image_path).unwrap();
-	let texture = platform.create_texture_2d(texture_image, texture::Options::default()).unwrap();
+	let mut resources = Resources::new(platform.clone().into(), Path::new(file!()).parent().unwrap().join(env!("CARGO_MANIFEST_DIR")).join("tests/assets"));
+	let texture = resources.load_by_path::<ResTexture2D, MetaTexture2D, &str>("1.png", false).unwrap();
 
 	let square = Model {
 		meshes: vec![
@@ -38,7 +42,7 @@ fn opengl_textures() {
 					0.5,
 					0.5,
 					1.5,
-					Some(&texture),
+					Some(texture.borrow().get()),
 					None,
 					None,
 					None,

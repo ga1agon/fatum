@@ -4,6 +4,10 @@ use bytemuck::Pod;
 
 use crate::shader::ShaderProgram;
 
+enum ShaderDataTypes {
+	Vertex()
+}
+
 pub trait ShaderData<D> {
 	fn push(&self);
 

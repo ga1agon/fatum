@@ -9,3 +9,6 @@ glam = { version = "0.30.9", features = ["bytemuck"] }
 glfw = "0.60.0"
 glow = { version = "0.16.0", features = ["debug_automatic_glGetError"] }
 image = "0.25.8"
+serde = { version = "1.0.228", features = ["derive"] }
+fatum_resources = { path = "../resources" }
+log = "0.4.28"

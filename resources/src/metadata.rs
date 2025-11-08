@@ -6,5 +6,5 @@ pub trait ResourceMetadata {
 	fn default() -> Self where Self: Sized;
 
 	fn id(&self) -> u64;
-	fn format(&self) -> String;
+	fn format(&self) -> &str;
 }

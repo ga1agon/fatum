@@ -57,14 +57,19 @@ pub struct OpenGlContext {
 impl GraphicsContext<glow::Context> for OpenGlContext {
 	fn get(&self) -> Rc<glow::Context> { self.gl.clone() }
 	fn glfw(&self) -> Rc<RefCell<glfw::Glfw>> { self.glfw.clone() }
+
+	fn create_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>) -> Result<Box<dyn ShaderData<D>>, PlatformError> {
+		Ok(Box::new(OpenGlShaderData::new(&self.clone(), program, name, binding, data)?))
+	}
 }
 
+#[derive(Clone)]
 pub struct OpenGlPlatform {
 	context: Rc<OpenGlContext>
 }
 
-impl GraphicsPlatform<OpenGlContext, glow::Context> for OpenGlPlatform {
-	fn new() -> Self {
+impl OpenGlPlatform {
+	pub fn new() -> Self {
 		#[cfg(debug_assertions)]
 		{
 			// force GLFW to use X11 in debug as renderdoc doesn't support wayland
@@ -156,8 +161,10 @@ impl GraphicsPlatform<OpenGlContext, glow::Context> for OpenGlPlatform {
 			context: Rc::new(context)
 		}
 	}
+}
 
-	fn context(&self) -> Rc<OpenGlContext> { self.context.clone() }
+impl GraphicsPlatform for OpenGlPlatform {
+	//fn context(&self) -> Rc<OpenGlContext> { self.context.clone() }
 
 	fn create_window(&mut self, title: &str, size: UVec2) -> Result<Box<dyn Window>, PlatformError> {
 		let window = OpenGlWindow::new(self.context.clone(), title, size, &self.context.shared_window.as_ref().unwrap())?;
@@ -175,13 +182,9 @@ impl GraphicsPlatform<OpenGlContext, glow::Context> for OpenGlPlatform {
 	fn create_shader_program(&self, shaders: Vec<Box<dyn Shader>>) -> Box<dyn ShaderProgram> {
 		Box::new(OpenGlShaderProgram::new(&self.context.clone(), shaders))
 	}
-	
-	fn create_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>) -> Result<Box<dyn ShaderData<D>>, PlatformError> {
-		Ok(Box::new(OpenGlShaderData::new(&self.context.clone(), program, name, binding, data)?))
-	}
 
-	fn create_texture_2d(&self, image: image::DynamicImage, filter: texture::Filter, wrap_mode: texture::WrapMode, format: texture::Format) -> Result<Box<dyn texture::Texture2D>, PlatformError> {
-		Ok(Box::new(OglTexture2D::new(&self.context.clone(), image, filter, wrap_mode, format)?))
+	fn create_texture_2d(&self, image: image::DynamicImage, options: texture::Options) -> Result<Box<dyn texture::Texture2D>, PlatformError> {
+		Ok(Box::new(OglTexture2D::new(&self.context.clone(), image, options)?))
 	}
 	
 	fn create_pipeline(&self, kind: PipelineKind) -> Box<dyn RenderPipeline> {
@@ -190,3 +193,6 @@ impl GraphicsPlatform<OpenGlContext, glow::Context> for OpenGlPlatform {
 		}
 	}
 }
+
+// TODO a way that would make resources not a required dependency of graphics?
+impl fatum_resources::ResourcePlatform for OpenGlPlatform {}

@@ -136,9 +136,9 @@ void main() {
 		program.build().expect("Could not build the default shader program");
 		program.bind();
 
-		let material_data = platform.create_shader_data(&program, "MaterialData", 1, None).expect("Could not create material data");
-		let matrix_data = platform.create_shader_data(&program, "MatrixData", 2, None).expect("Could not create matrix data");
-		let camera_data = platform.create_shader_data(&program, "CameraData", 3, None).expect("Could not create camera data");
+		let material_data = platform.context.create_shader_data(&program, "MaterialData", 1, None).expect("Could not create material data");
+		let matrix_data = platform.context.create_shader_data(&program, "MatrixData", 2, None).expect("Could not create matrix data");
+		let camera_data = platform.context.create_shader_data(&program, "CameraData", 3, None).expect("Could not create camera data");
 
 		Self {
 			gl,

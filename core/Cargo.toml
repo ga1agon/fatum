@@ -4,3 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+fatum_graphics = { path = "../graphics" }
+fatum_resources = { path = "../resources" }
+glam = { version = "0.30.9", features = ["bytemuck"] }
+image = "0.25.8"
+log = "0.4.28"
+ron = "0.11.0"
+serde = { version = "1.0.228", features = ["derive"] }
+
+[dev-dependencies]
+simple_logger = "5.1.0"

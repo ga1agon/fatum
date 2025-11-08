@@ -15,8 +15,8 @@ pub enum ErrorKind {
 
 #[derive(Debug, Clone)]
 pub struct PlatformError {
-	kind: ErrorKind,
-	msg: String
+	pub kind: ErrorKind,
+	pub msg: String
 }
 
 impl PlatformError {

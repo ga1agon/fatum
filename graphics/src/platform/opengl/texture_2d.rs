@@ -1,22 +1,20 @@
-use std::rc::Rc;
+use std::{io::BufReader, path::PathBuf, rc::Rc};
 
 use glam::UVec2;
 use glow::{HasContext, NativeTexture, PixelUnpackData};
 use image::{GenericImageView, RgbaImage, metadata::Orientation};
 
-use crate::{error::{ErrorKind, PlatformError}, platform::{GraphicsContext, opengl::OpenGlContext}, texture::{Filter, Format, Texture2D, WrapMode}};
+use crate::{error::{ErrorKind, PlatformError}, platform::{GraphicsContext, GraphicsPlatform, opengl::{OpenGlContext, OpenGlPlatform}}, texture::{self, Filter, Format, Texture2D, WrapMode}};
 
 pub struct OglTexture2D {
 	gl: Rc<glow::Context>,
 
 	handle: NativeTexture,
-	filter: Filter,
-	wrap_mode: WrapMode,
-	format: Format
+	options: texture::Options,
 }
 
 impl OglTexture2D {
-	pub fn new(context: &OpenGlContext, mut image: image::DynamicImage, filter: Filter, wrap_mode: WrapMode, format: Format) -> Result<Self, PlatformError> {
+	pub fn new(context: &OpenGlContext, mut image: image::DynamicImage, options: texture::Options) -> Result<Self, PlatformError> {
 		let gl = context.get();
 
 		let handle = unsafe {
@@ -27,21 +25,19 @@ impl OglTexture2D {
 		let mut inst = Self {
 			gl: gl.clone(),
 			handle,
-			filter,
-			wrap_mode,
-			format
+			options,
 		};
 
 		inst.bind(0);
 
 		let image_size = UVec2::new(image.dimensions().0, image.dimensions().1);
 
-		let gl_filter = match filter {
+		let gl_filter = match options.filter {
 			Filter::Linear => glow::LINEAR,
 			Filter::Nearest => glow::NEAREST
 		} as i32;
 
-		let gl_wrap_mode = match wrap_mode {
+		let gl_wrap_mode = match options.wrap_mode {
 			WrapMode::ClampToBorder => glow::CLAMP_TO_BORDER,
 			WrapMode::ClampToEdge => glow::CLAMP_TO_EDGE,
 			WrapMode::Repeat => glow::REPEAT,
@@ -86,7 +82,5 @@ impl Texture2D for OglTexture2D {
 	}
 
 	fn handle(&self) -> u64 { self.handle.0.get() as u64 }
-	fn filter(&self) -> Filter { self.filter }
-	fn wrap_mode(&self) -> WrapMode { self.wrap_mode }
-	fn format(&self) -> Format { self.format }
+	fn options(&self) -> texture::Options { self.options }
 }
