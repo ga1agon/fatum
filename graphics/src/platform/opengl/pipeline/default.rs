@@ -3,7 +3,7 @@ use std::{any::Any, rc::Rc};
 use glam::Mat4;
 use glow::HasContext;
 
-use crate::{Color, Material, Vertex, platform::{GraphicsContext, GraphicsPlatform, opengl::{OpenGlContext, OpenGlPlatform}}, render::RenderPipeline, shader::{ShaderData, ShaderFamily, ShaderProgram}};
+use crate::{Camera, Color, Material, Vertex, platform::{GraphicsContext, GraphicsPlatform, opengl::{OpenGlContext, OpenGlPlatform}}, render::RenderPipeline, shader::{ShaderData, ShaderFamily, ShaderProgram}};
 
 pub struct DefaultOpenGlPipeline {
 	gl: Rc<glow::Context>,
@@ -11,6 +11,7 @@ pub struct DefaultOpenGlPipeline {
 
 	material_data: Box<dyn ShaderData<Material>>,
 	matrix_data: Box<dyn ShaderData<Mat4>>,
+	camera_data: Box<dyn ShaderData<Camera>>,
 
 	clear_color: Color,
 }
@@ -43,6 +44,15 @@ struct Vertex {
 uniform MatrixData {
 	mat4 matrix;
 };
+
+uniform CameraData {
+	mat4 proj;
+	mat4 inv_proj;
+	mat4 view;
+	mat4 inv_view;
+	vec3 position;
+	float aspect_ratio;
+};
 //
 
 //= i/o
@@ -50,7 +60,7 @@ out Vertex vertex;
 //
 
 void main() {
-	vec4 position = vec4(v_position, 1.0);
+	vec4 position = proj * view * matrix * vec4(v_position, 1.0);
 	gl_Position = position;
 	
 	vertex.position = v_position;
@@ -107,12 +117,14 @@ void main() {
 
 		let material_data = platform.create_shader_data(&program, "MaterialData", 1, None).expect("Could not create material data");
 		let matrix_data = platform.create_shader_data(&program, "MatrixData", 2, None).expect("Could not create matrix data");
+		let camera_data = platform.create_shader_data(&program, "CameraData", 3, None).expect("Could not create camera data");
 
 		Self {
 			gl,
 			program,
 			material_data,
 			matrix_data,
+			camera_data,
 			clear_color: Color::from_rgb_f32(0.0, 0.0, 0.0)
 		}
 	}
@@ -124,6 +136,7 @@ impl RenderPipeline for DefaultOpenGlPipeline {
 
 		self.material_data.push();
 		self.matrix_data.push();
+		self.camera_data.push();
 
 		unsafe {
 			self.gl.clear_color(
@@ -143,7 +156,8 @@ impl RenderPipeline for DefaultOpenGlPipeline {
 	fn index_data(&mut self) -> &mut dyn ShaderData<u32> { panic!("The OpenGL backend doesn't use buffers for index data") }
 	fn material_data(&mut self) -> &mut dyn ShaderData<Material> { self.material_data.as_mut() }
 	fn matrix_data(&mut self) -> &mut dyn ShaderData<Mat4> { self.matrix_data.as_mut() }
-	
+	fn camera_data(&mut self) -> &mut dyn ShaderData<Camera> { self.camera_data.as_mut() }
+
 	fn clear_color(&self) -> Color { self.clear_color }
 	
 	fn set_clear_color(&mut self, color: Color) { self.clear_color = color }

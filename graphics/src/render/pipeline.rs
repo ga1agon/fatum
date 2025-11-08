@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use glam::Mat4;
 
-use crate::{Color, Material, Vertex, platform::GraphicsPlatform, shader::{ShaderData, ShaderProgram}};
+use crate::{Camera, Color, Material, Vertex, platform::GraphicsPlatform, shader::{ShaderData, ShaderProgram}};
 
 pub enum PipelineKind {
 	Default,
@@ -16,6 +16,7 @@ pub trait RenderPipeline {
 	fn index_data(&mut self) -> &mut dyn ShaderData<u32>;
 	fn material_data(&mut self) -> &mut dyn ShaderData<Material>;
 	fn matrix_data(&mut self) -> &mut dyn ShaderData<Mat4>;
+	fn camera_data(&mut self) -> &mut dyn ShaderData<Camera>;
 
 	fn clear_color(&self) -> Color;
 	fn set_clear_color(&mut self, color: Color);

@@ -1,8 +1,8 @@
 use glfw::{Context, PWindow};
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
-use crate::{Model, Vertex, platform::{GraphicsContext, opengl::{OpenGlContext, OpenGlWindow}}, render::*};
-use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc, time};
+use crate::{Camera, Model, Rf, Vertex, platform::{GraphicsContext, opengl::{OpenGlContext, OpenGlWindow}}, render::*};
+use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc, sync::atomic::{AtomicUsize, Ordering}, time};
 
 struct ObjectDrawData {
 	id: u64,
@@ -31,8 +31,8 @@ pub struct OpenGlRenderQueue {
 	context: Rc<OpenGlContext>,
 
 	pipeline: Option<Box<dyn RenderPipeline>>,
-	targets: Vec<Box<dyn RenderTarget>>,
-	commands: Vec<fn(time::Duration)>,
+	targets: HashMap<usize, Box<dyn RenderTarget>>,
+	commands: HashMap<usize, fn(time::Duration)>,
 
 	last_process: time::Instant,
 	process_delta: time::Duration,
@@ -41,12 +41,14 @@ pub struct OpenGlRenderQueue {
 }
 
 impl OpenGlRenderQueue {
+	const ID_COUNTER: AtomicUsize = AtomicUsize::new(1);
+
 	pub fn new(context: Rc<OpenGlContext>) -> Self {
 		Self {
 			context,
 			pipeline: None,
-			targets: vec![],
-			commands: vec![],
+			targets: HashMap::new(),
+			commands: HashMap::new(),
 			last_process: std::time::Instant::now(),
 			process_delta: std::time::Duration::from_secs(0),
 			objects: HashMap::new()
@@ -69,7 +71,7 @@ impl RenderQueue for OpenGlRenderQueue {
 
 		let gl = self.context.get();
 
-		for target in &mut self.targets {
+		for (_, target) in &mut self.targets {
 			target.begin();
 
 			for (object, draw_data) in &self.objects {
@@ -99,7 +101,7 @@ impl RenderQueue for OpenGlRenderQueue {
 				}
 			}
 
-			for command in &self.commands {
+			for (_, command) in &self.commands {
 				command(self.process_delta);
 			}
 
@@ -109,15 +111,42 @@ impl RenderQueue for OpenGlRenderQueue {
 		pipeline.end();
 	}
 
-	fn pipeline(&self) -> &Option<Box<dyn RenderPipeline>> { &self.pipeline }
+	fn is_active(&self) -> bool {
+		self.targets.iter().all(|t| t.1.is_active())
+	}
+
+	fn pipeline(&self) -> Option<&Box<dyn RenderPipeline>> { self.pipeline.as_ref() }
+	fn pipeline_mut(&mut self) -> Option<&mut Box<dyn RenderPipeline>> { self.pipeline.as_mut() }
 	fn set_pipeline(&mut self, pipeline: Option<Box<dyn RenderPipeline>>) { self.pipeline = pipeline }
 
-	fn add_target(&mut self, target: Box<dyn RenderTarget>) {
-		self.targets.push(target);
+	fn add_target(&mut self, target: Box<dyn RenderTarget>) -> usize {
+		let id = Self::ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+
+		self.targets.insert(id, target);
+		id
+	}
+
+	fn get_target(&self, index: usize) -> Option<&Box<dyn RenderTarget>> {
+		if !self.targets.contains_key(&index) {
+			return None;
+		}
+
+		return Some(&self.targets[&index]);
+	}
+
+	fn remove_target(&mut self, index: usize) -> bool {
+		self.targets.remove(&index).is_some()
 	}
 	
-	fn add_command(&mut self, command: fn(time::Duration)) {
-		self.commands.push(command);
+	fn add_command(&mut self, command: fn(time::Duration)) -> usize {
+		let id = Self::ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+
+		self.commands.insert(id, command);
+		id
+	}
+
+	fn remove_command(&mut self, index: usize) -> bool {
+		self.targets.remove(&index).is_some()
 	}
 	
 	fn add_object(&mut self, object: Rc<RenderObject>) -> bool {

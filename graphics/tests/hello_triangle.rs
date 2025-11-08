@@ -1,17 +1,17 @@
-use fatum_graphics::{Color, Material, Mesh, Model, Vertex, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderObject, RenderPipeline}};
-use glam::{EulerRot, Mat4, Quat, UVec2, Vec3};
+use fatum_graphics::{Camera2D, Color, Material, Mesh, Model, Vertex, Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderObject, RenderPipeline}};
+use glam::{EulerRot, Mat4, Quat, UVec2, Vec2, Vec3};
 use std::{rc::Rc, *};
 
 #[test]
 fn opengl_hello_triangle() {
 	let mut platform = OpenGlPlatform::new();
-	let mut window = platform.create_window("Hello Triangle", UVec2::new(512, 512))
+	let mut window = platform.create_window("Hello Triangle", UVec2::new(800, 600))
 		.unwrap();
 
 	window.show();
 
 	let mut queue = platform.create_queue();
-	queue.add_target(window);
+	let window = queue.add_target(window);
 
 	let pipeline = platform.create_pipeline(PipelineKind::Default);
 	queue.set_pipeline(Some(pipeline));
@@ -20,9 +20,9 @@ fn opengl_hello_triangle() {
 		meshes: vec![
 			Mesh {
 				vertices: vec![
-					Vertex::new(Vec3::new(-0.5, -0.5, 0.0), Default::default(), Default::default(), Default::default(), Default::default()),
-					Vertex::new(Vec3::new( 0.5, -0.5, 0.0), Default::default(), Default::default(), Default::default(), Default::default()),
-					Vertex::new(Vec3::new( 0.0,  0.5, 0.0), Default::default(), Default::default(), Default::default(), Default::default())
+					Vertex::new(Vec3::new(200.0, 400.0, 0.0), Default::default(), Default::default(), Default::default(), Default::default()),
+					Vertex::new(Vec3::new(0.0, 0.0, 0.0), Default::default(), Default::default(), Default::default(), Default::default()),
+					Vertex::new(Vec3::new(400.0, 0.0, 0.0), Default::default(), Default::default(), Default::default(), Default::default())
 				],
 				indices: vec![
 					0u32, 1u32, 2u32
@@ -40,11 +40,18 @@ fn opengl_hello_triangle() {
 	let triangle_object = Rc::new(RenderObject::new(triangle, matrix));
 	queue.add_object(triangle_object);
 
+	let camera = Camera2D {
+		position: Vec2::new(-200.0, -50.0),
+		size: queue.get_target(window).unwrap().size()
+	};
+
+	queue.pipeline_mut().unwrap().camera_data().set_data(vec![camera.create()].into());
+
 	queue.add_command(|delta| {
 		//println!("Delta time: {}", delta.as_secs_f32() * 1000.0);
 	});
 
-	loop {
+	while queue.is_active() {
 		queue.process();
 	}
 }

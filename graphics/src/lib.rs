@@ -20,3 +20,11 @@ pub use mesh::*;
 
 mod model;
 pub use model::*;
+
+mod camera;
+pub use camera::*;
+
+type Rf<T> = std::rc::Rc<std::cell::RefCell<T>>;
+pub fn rf<T>(v: T) -> Rf<T> {
+	std::rc::Rc::new(std::cell::RefCell::new(v))
+}

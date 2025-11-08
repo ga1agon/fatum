@@ -4,8 +4,6 @@ use glam::Mat4;
 
 use crate::Model;
 
-static ID_COUNTER: AtomicU64 = AtomicU64::new(1);
-
 #[derive(Debug)]
 pub struct RenderObject {
 	pub id: u64,
@@ -14,8 +12,10 @@ pub struct RenderObject {
 }
 
 impl RenderObject {
+	const ID_COUNTER: AtomicU64 = AtomicU64::new(1);
+
 	pub fn new(model: Model, matrix: Mat4) -> Self {
-		Self::with_id(ID_COUNTER.fetch_add(1, Ordering::Relaxed), model, matrix)
+		Self::with_id(Self::ID_COUNTER.fetch_add(1, Ordering::Relaxed), model, matrix)
 	}
 
 	pub fn with_id(id: u64, model: Model, matrix: Mat4) -> Self {

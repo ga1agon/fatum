@@ -146,7 +146,7 @@ impl GraphicsPlatform<OpenGlContext, glow::Context> for OpenGlPlatform {
 			shared_window: None,
 		};
 
-		let base_window = Rc::new(OpenGlWindow::from_impl(Rc::new(context.clone()), window, event_receiver, "", UVec2::new(1, 1)));
+		let base_window = Rc::new(OpenGlWindow::from_impl(Rc::new(context.clone()), window, event_receiver, ""));
 		context.shared_window = Some(base_window);
 
 		Self {
