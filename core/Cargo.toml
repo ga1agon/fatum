@@ -1,8 +1,6 @@
 [package]
-name = "fatum_resources"
+name = "fatum"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ron = "0.11.0"
-serde = "1.0.228"

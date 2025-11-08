@@ -1,14 +1,13 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+mod resource;
+pub use resource::*;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod manager;
+pub use manager::*;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+mod metadata;
+pub use metadata::*;
+
+type Rf<T> = std::rc::Rc<std::cell::RefCell<T>>;
+pub(crate) fn rf<T>(v: T) -> Rf<T> {
+	std::rc::Rc::new(std::cell::RefCell::new(v))
 }
