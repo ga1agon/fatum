@@ -318,6 +318,7 @@ name = "fatum"
 version = "0.1.0"
 dependencies = [
  "fatum_graphics",
+ "fatum_macros",
  "fatum_resources",
  "fatum_scene",
  "ftail",
@@ -345,6 +346,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "fatum_macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "fatum_resources"
 version = "0.1.0"
 dependencies = [
@@ -358,6 +367,7 @@ version = "0.1.0"
 dependencies = [
  "fatum_scene_macros",
  "rand 0.9.2",
+ "serde",
 ]
 
 [[package]]

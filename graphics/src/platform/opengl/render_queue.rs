@@ -276,4 +276,8 @@ impl RenderQueue for OpenGlRenderQueue {
 	fn remove_object(&mut self, object: &RenderObject) -> bool {
 		self.objects.remove(object).is_some()
 	}
+
+	fn clear_objects(&mut self) {
+		self.objects.clear();
+	}
 }

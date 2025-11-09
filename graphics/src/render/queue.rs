@@ -20,4 +20,5 @@ pub trait RenderQueue {
 
 	fn add_object(&mut self, object: Rc<RenderObject>) -> bool;
 	fn remove_object(&mut self, object: &RenderObject) -> bool;
+	fn clear_objects(&mut self);
 }

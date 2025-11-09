@@ -1,8 +1,9 @@
-use fatum_scene::Node;
+use fatum_scene::{Node, NodeBehaviour};
 
 use crate::Transform3D;
 
-pub struct Node3D<'a> {
-	base: Node<'a>,
+#[derive(NodeBehaviour)]
+pub struct Node3D {
+	base: Node,
 	transform: Transform3D
 }

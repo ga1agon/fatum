@@ -1,9 +1,9 @@
-use std::{any::{TypeId, type_name}, path::{Path, PathBuf}, rc::Rc, sync::{Arc, Mutex}};
+use std::{any::{TypeId, type_name}, cell::{RefCell, RefMut}, path::{Path, PathBuf}, rc::Rc, sync::{Arc, Mutex, MutexGuard}};
 
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderTarget}};
 use fatum_resources::{ResourcePlatform, Resources};
 
-use crate::{Application, ApplicationInfo, GraphicsEngine, ResourceEngine};
+use crate::{Application, ApplicationInfo, GraphicsEngine, ResourceEngine, SceneEngine};
 
 pub enum OutputKind {
 	Window
@@ -13,8 +13,10 @@ pub struct CoreEngine<P: GraphicsPlatform + ResourcePlatform, A: Application<P>>
 	pub app: Box<A>,
 	pub app_info: ApplicationInfo,
 	pub base_directory: PathBuf,
-	graphics: GraphicsEngine<P>,
-	resources: ResourceEngine<P>,
+
+	graphics: Rc<RefCell<GraphicsEngine<P>>>,
+	resources: Arc<Mutex<ResourceEngine<P>>>,
+	scene: Rc<RefCell<SceneEngine<P>>>,
 
 	running: bool
 }
@@ -54,8 +56,10 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 		let app_info = A::info();
 		log::info!("Application: {:?}", app_info);
 
-		let mut graphics = GraphicsEngine::<P>::new(app_info.clone());
-		let resources = ResourceEngine::<P>::new(graphics.get(), &base_directory);
+		let graphics = Rc::new(RefCell::new(GraphicsEngine::<P>::new(app_info.clone())));
+		//                                                                                                this is AWESOME! --_\
+		let resources = Arc::new(Mutex::new(ResourceEngine::<P>::new(Rc::new(graphics.clone().borrow_mut().get().clone()), &base_directory)));
+		let scene = Rc::new(RefCell::new(SceneEngine::<P>::new(graphics.clone())));
 
 		Self {
 			app,
@@ -63,15 +67,17 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 			base_directory,
 			graphics,
 			resources,
+			scene,
 			running: false
 		}
 	}
 
-	pub fn graphics_engine(&mut self) -> &mut GraphicsEngine<P> { &mut self.graphics }
-	pub fn resource_engine(&mut self) -> &mut ResourceEngine<P> { &mut self.resources }
+	pub fn graphics_engine(&mut self) -> RefMut<GraphicsEngine<P>> { self.graphics.borrow_mut() }
+	pub fn resource_engine(&mut self) -> MutexGuard<ResourceEngine<P>> { self.resources.lock().unwrap() }
+	pub fn scene_engine(&mut self) -> RefMut<SceneEngine<P>> { self.scene.borrow_mut() }
 
-	pub fn graphics(&mut self) -> &mut P { self.graphics.get() }
-	pub fn resources(&mut self) -> &mut Resources<P> { self.resources.get() }
+	// pub fn graphics(&mut self) -> &mut P { self.graphics_engine().get() }
+	// pub fn resources(&mut self) -> &mut Resources<P> { self.resource_engine().get() }
 
 	pub fn setup(&mut self) {
 		let mut app = std::mem::take(&mut self.app);
@@ -83,7 +89,7 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 		self.running = true;
 
 		while self.running {
-			if !self.graphics.process() {
+			if !self.graphics_engine().process() {
 				self.running = false;
 			}
 		}

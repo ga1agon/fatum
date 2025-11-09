@@ -9,7 +9,7 @@ pub struct GraphicsEngine<P: GraphicsPlatform> {
 	app_info: ApplicationInfo,
 	platform: P,
 
-	outputs: HashMap<usize, (Box<dyn RenderQueue>, u8)>, // TODO remove the tuples
+	outputs: HashMap<usize, Box<dyn RenderQueue>>,
 }
 
 impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
@@ -34,11 +34,11 @@ impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
 		let queue: &mut Box<dyn RenderQueue>;
 
 		if let Some(output) = output {
-			queue = &mut output.0;
+			queue = output;
 		} else {
-			self.outputs.insert(index, (self.platform.create_queue(), 0u8));
+			self.outputs.insert(index, self.platform.create_queue());
 			output = self.outputs.get_mut(&index);
-			queue = &mut output.unwrap().0;
+			queue = output.unwrap();
 
 			queue.set_pipeline(Some(self.platform.create_pipeline(pipeline_kind)));
 		}
@@ -56,8 +56,12 @@ impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
 		queue_target
 	}
 
+	pub fn get_output(&mut self, index: usize) -> Option<&mut Box<dyn RenderQueue>> {
+		self.outputs.get_mut(&index)
+	}
+
 	pub fn process(&mut self) -> bool {
-		for (_, (queue, _)) in &mut self.outputs {
+		for (_, queue) in &mut self.outputs {
 			if !queue.is_active() {
 				continue;
 			}
@@ -66,7 +70,7 @@ impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
 		}
 
 		self.outputs.iter().all(|o| {
-			o.1.0.is_active()
+			o.1.is_active()
 		})
 	}
 }

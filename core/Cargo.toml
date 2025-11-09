@@ -15,6 +15,7 @@ path = "src/main.rs"
 fatum_graphics = { path = "../graphics" }
 fatum_resources = { path = "../resources" }
 fatum_scene = { path = "../scene", features = ["macros"] }
+fatum_macros = { path = "./macros", optional = true }
 ftail = "0.3.1"
 glam = { version = "0.30.9", features = ["bytemuck"] }
 image = "0.25.8"
@@ -28,3 +29,6 @@ simple_logger = "5.1.0"
 
 # [features]
 # logging = ["dep:structured-logger"]
+
+[features]
+macros = ["dep:fatum_macros"]

@@ -29,13 +29,12 @@ pub fn derive_node_behaviour(input: TokenStream) -> TokenStream {
     };
 
     let expanded = quote! {
-        impl<'a> NodeBehaviour<'a> for #name<'a> {
+        impl fatum_scene::NodeBehaviour for #name {
             fn enter_scene(
                 &mut self,
-                scene: std::sync::Arc<std::sync::Mutex<fatum_scene::SceneTree<'a>>>,
-                parent: Option<&'a mut Node<'a>>,
+                scene: std::sync::Arc<std::sync::Mutex<fatum_scene::SceneTree>>
             ) {
-                self.#base_field.enter_scene(scene, parent);
+                self.#base_field.enter_scene(scene);
             }
 
             fn exit_scene(&mut self) {
