@@ -1,0 +1,3 @@
+fn main() {
+	// TODO read project info from file, load library, execute application...
+}

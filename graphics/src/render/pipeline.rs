@@ -1,9 +1,10 @@
-use std::rc::Rc;
+use std::{fmt, rc::Rc};
 
 use glam::Mat4;
 
 use crate::{Camera, Color, Material, Vertex, platform::GraphicsPlatform, shader::{ShaderData, ShaderProgram}};
 
+#[derive(Debug)]
 pub enum PipelineKind {
 	Default,
 	PBR,

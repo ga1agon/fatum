@@ -16,18 +16,13 @@ impl ResourceMetadata for MetaTexture2D {
 	fn default() -> Self where Self: Sized {
 		Self {
 			id: fatum_resources::RESOURCE_ID_COUNTER.fetch_add(1, Ordering::Relaxed),
-			format: "texture2d".to_string(),
+			format: String::from("texture2d"),
 			options: Default::default()
 		}
 	}
 
-	fn id(&self) -> u64 {
-		self.id
-	}
-
-	fn format(&self) -> &str {
-		&self.format
-	}
+	fn id(&self) -> u64 { self.id }
+	fn format(&self) -> &str { &self.format }
 }
 
 pub struct ResTexture2D {
@@ -41,26 +36,26 @@ impl ResTexture2D {
 	pub fn get(&self) -> &Box<dyn Texture2D> { &self.value }
 }
 
-impl<T: GraphicsPlatform + ResourcePlatform + Sized> Resource<T> for ResTexture2D {
-	fn load(manager: &fatum_resources::Resources<T>, path: PathBuf, metadata: Option<File>, asset: &File) -> Result<Self, fatum_resources::error::ResourceError>
+impl<P: GraphicsPlatform + ResourcePlatform + Sized> Resource<P> for ResTexture2D {
+	fn load(manager: &fatum_resources::Resources<P>, path: PathBuf, metadata: Option<File>, asset: File) -> Result<Self, fatum_resources::error::ResourceError>
 		where Self: Sized
 	{
 		let file_reader = BufReader::new(asset);
 		let image = image::ImageReader::new(file_reader)
 			.with_guessed_format().unwrap()
 			.decode()
-			.map_err(|e| ResourceError::new(fatum_resources::error::ErrorKind::LoadError, format!("Could not decode image: {}", e).as_str()))?;
+			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::LoadError, format!("Could not decode image: {}", e).as_str()))?;
 
-		let metadata: MetaTexture2D =
+		let metadata =
 			if metadata.is_some() {
 				ron::de::from_reader(metadata.unwrap())
-					.map_err(|e| ResourceError::new(fatum_resources::error::ErrorKind::MetadataError, format!("Failed to deserialize the resource metadata file: {}", e).as_str()))?
+					.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::MetadataError, format!("Failed to deserialize the resource metadata file: {}", e).as_str()))?
 			} else {
 				MetaTexture2D::default()
 			};
 
 		let value = manager.platform.create_texture_2d(image, metadata.options)
-			.map_err(|e| ResourceError::new(fatum_resources::error::ErrorKind::Other, &e.msg))?;
+			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::Other, &e.msg))?;
 
 		Ok(Self {
 			path,
