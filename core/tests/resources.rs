@@ -22,7 +22,7 @@ fn opengl_textures() {
 	queue.set_pipeline(Some(pipeline));
 
 	let mut resources = Resources::new(platform.clone().into(), Path::new(file!()).parent().unwrap().join(env!("CARGO_MANIFEST_DIR")).join("tests/assets"));
-	let texture = resources.load_by_path::<ResTexture2D, MetaTexture2D, &str>("1.png", false).unwrap();
+	let texture = resources.load_by_path::<ResTexture2D>("1.png", false).unwrap();
 
 	let square = Model {
 		meshes: vec![

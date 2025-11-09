@@ -68,8 +68,8 @@ pub struct OpenGlPlatform {
 	context: Rc<OpenGlContext>
 }
 
-impl OpenGlPlatform {
-	pub fn new() -> Self {
+impl GraphicsPlatform for OpenGlPlatform {
+	fn new() -> Self {
 		#[cfg(debug_assertions)]
 		{
 			// force GLFW to use X11 in debug as renderdoc doesn't support wayland
@@ -161,9 +161,7 @@ impl OpenGlPlatform {
 			context: Rc::new(context)
 		}
 	}
-}
 
-impl GraphicsPlatform for OpenGlPlatform {
 	//fn context(&self) -> Rc<OpenGlContext> { self.context.clone() }
 
 	fn create_window(&mut self, title: &str, size: UVec2) -> Result<Box<dyn Window>, PlatformError> {

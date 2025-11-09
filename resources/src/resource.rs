@@ -2,10 +2,10 @@ use std::{any::Any, fs::File, path::{Path, PathBuf}, sync::atomic::{AtomicU64, A
 
 use crate::{ResourceMetadata, ResourcePlatform, Resources, error::ResourceError};
 
-pub trait Resource<Pl> where Pl: ResourcePlatform + Sized {
-	fn load(manager: &Resources<Pl>, path: PathBuf, metadata: Option<File>, asset: &File) -> Result<Self, ResourceError>
+pub trait Resource<P> where P: ResourcePlatform + Sized {
+	fn load(manager: &Resources<P>, path: PathBuf, metadata: Option<File>, asset: File) -> Result<Self, ResourceError>
 		where Self: Sized;
-	
+
 	fn save(&self);
 	fn reload(&mut self);
 

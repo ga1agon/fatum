@@ -1,7 +1,8 @@
-use std::{cell::RefCell, collections::HashMap, fs::File, io::{BufReader, Read}, path::{Component, Path, PathBuf}, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fs::File, io::{BufReader, Read}, path::{Component, Path, PathBuf}, rc::Rc, str::FromStr};
 
 use crate::{Resource, ResourceMetadata, ResourcePlatform, Rf, error::{ErrorKind, ResourceError}, rf};
 
+// TODO resources should probably be stored in an Arc<Mutex<>>
 pub struct Resources<Pl> where Pl: ResourcePlatform {
 	pub platform: Rc<Pl>,
 	assets_directory: PathBuf,
@@ -19,15 +20,15 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 		}
 	}
 
-	pub fn load_by_path<T, M, P>(&mut self, path: P, cache: bool) -> Result<Rf<Box<T>>, ResourceError>
-		where
-			T: Resource<Pl> + 'static,
-			M: ResourceMetadata + serde::de::DeserializeOwned,
-			P: AsRef<Path>
+	pub fn load_by_path<T>(&mut self, location: &str, cache: bool) -> Result<Rf<Box<T>>, ResourceError>
+		where T: Resource<Pl> + 'static
 	{
 		let mut asset_path = self.assets_directory.clone();
 
-		let components = path.as_ref().components().skip_while(|c| {
+		let path = PathBuf::from_str(location)
+			.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("&str->PathBuf conversion failed: {}", e).as_str()))?;
+
+		let components = path.components().skip_while(|c| {
 			matches!(c, Component::Prefix(_) | Component::RootDir)
 		});
 
@@ -49,6 +50,7 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 				return Ok(resource_rf);
 			} else {
 				return Err(ResourceError::new(
+					location,
 					ErrorKind::TypeMismatchError,
 					"The cached resource's type does not match the requested resource's type"
 				));
@@ -58,9 +60,9 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 		let metadata = File::open(&metadata_path)
 			.map_or(None, |f| Some(f));
 		let asset = File::open(&asset_path)
-			.map_err(|e| ResourceError::new(ErrorKind::IoError, format!("Failed to open asset: {}", e).as_str()))?;
+			.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to open asset: {}", e).as_str()))?;
 
-		let resource = T::load(self, asset_path, metadata, &asset)?;
+		let resource = T::load(self, asset_path, metadata, asset)?;
 		let resource_rf = rf(Box::new(resource));
 
 		if cache {
@@ -81,4 +83,6 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 		self.resources_by_id.retain(|_, v| **v.borrow() != **resource.borrow());
 		self.resources_by_path.retain(|_, v| **v.borrow() != **resource.borrow());
 	}
+
+	pub fn assets_directory(&self) -> &PathBuf { &self.assets_directory }
 }

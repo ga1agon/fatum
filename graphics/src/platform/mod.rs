@@ -18,6 +18,8 @@ pub trait GraphicsPlatform
 // <T1, T2>
 // 	where T1: GraphicsContext<T2>
 {
+	fn new() -> Self;
+
 	//fn context(&self) -> Rc<T1>;
 
 	fn create_window(&mut self, title: &str, size: UVec2) -> Result<Box<dyn Window>, PlatformError>;

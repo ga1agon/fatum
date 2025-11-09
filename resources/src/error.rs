@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, path::Path};
 
 #[derive(Debug, Clone)]
 pub enum ErrorKind {
@@ -17,10 +17,10 @@ pub struct ResourceError {
 }
 
 impl ResourceError {
-	pub fn new(kind: ErrorKind, msg: &str) -> Self {
+	pub fn new<P: AsRef<Path>>(path: P, kind: ErrorKind, msg: &str) -> Self {
 		Self {
 			kind,
-			msg: msg.to_string()
+			msg: format!("{} -> {}", path.as_ref().to_str().unwrap_or("Unknown"), msg)
 		}
 	}
 }
