@@ -3,6 +3,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
 use fatum_graphics::platform::GraphicsPlatform;
 use fatum_resources::ResourcePlatform;
 use fatum_scene::{Node, NodeBehaviour, SceneTree};
+use signals2::Connect2;
 
 use crate::{Application, CoreEngine, GraphicsEngine};
 
@@ -25,8 +26,7 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 		self.scenes.get(&output_index).map_or(None, |v| Some(v.clone()))
 	}
 
-	pub fn set_scene(&mut self, output_index: usize, scene: SceneTree) -> Option<bool> {
-		let scene = Arc::new(Mutex::new(scene));
+	pub fn set_scene(&mut self, output_index: usize, scene: Arc<Mutex<SceneTree>>) -> Option<bool> {
 		let mut graphics = self.graphics.borrow_mut();
 
 		let queue = graphics.get_output(output_index)?;
@@ -58,6 +58,16 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 				
 				node_ready(scene.clone(), child_node);
 			}
+		}
+
+		if let Ok(scene) = scene.lock() {
+			scene.node_added.connect(|scene, node| {
+				// TODO add to queue
+			});
+
+			scene.node_removed.connect(|scene, node| {
+				// TODO remove from queue
+			});
 		}
 
 		self.scenes.insert(output_index, scene);

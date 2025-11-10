@@ -8,6 +8,7 @@ pub struct Node {
 	id: u32,
 	name: String,
 
+	behaviour: Option<&'static dyn NodeBehaviour>,
 	scene: Option<Arc<Mutex<SceneTree>>>,
 	//parent: Option<u32>,
 	//children: Vec<u32>,
@@ -16,18 +17,19 @@ pub struct Node {
 impl Node {
 	//pub const ID_COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(1);
 
-	pub fn new(children: Vec<u32>) -> Self {
-		Self::with_name(&Alphabetic.sample_string(&mut rand::rng(), 12), children)
+	pub fn new() -> Self {
+		Self::with_name(&Alphabetic.sample_string(&mut rand::rng(), 12))
 	}
 
-	pub fn with_name(name: &str, children: Vec<u32>) -> Self {
-		Self::with_id_name(u32::MAX, name, children)
+	pub fn with_name(name: &str) -> Self {
+		Self::with_id_name(u32::MAX, name)
 	}
 
-	pub fn with_id_name(id: u32, name: &str, children: Vec<u32>) -> Self {
+	pub fn with_id_name(id: u32, name: &str) -> Self {
 		Self {
 			id,
 			name: name.to_string(),
+			behaviour: None,
 			scene: None,
 			//parent: None,
 			//children
@@ -36,6 +38,9 @@ impl Node {
 
 	pub fn id(&self) -> u32 { self.id }
 	pub(crate) fn set_id(&mut self, id: u32) { self.id = id }
+
+	pub fn behaviour(&self) -> Option<&'static dyn NodeBehaviour> { self.behaviour }
+	pub fn set_behaviour(&mut self, behaviour: Option<&'static dyn NodeBehaviour>) { self.behaviour = behaviour }
 	
 	pub fn name(&self) -> &str { &self.name }
 	pub fn set_name(&mut self, name: &str) { self.name = name.to_string() }
@@ -77,6 +82,8 @@ impl NodeBehaviour for Node {
 }
 
 pub trait NodeBehaviour {
+	//fn base(&self) -> &Node;
+
 	fn enter_scene(&mut self, scene: Arc<Mutex<SceneTree>>);
 	fn exit_scene(&mut self);
 	fn ready(&mut self);

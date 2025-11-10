@@ -1,8 +1,9 @@
 use std::{path::{Path, PathBuf}, str::FromStr};
 
-use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, resources::{ResText, ResTexture2D}};
+use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, nodes::Sprite2D, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
+use fatum_scene::SceneTree;
 
 struct SceneGraphApplication<P: GraphicsPlatform + ResourcePlatform> {
 	_marker: std::marker::PhantomData<P>
@@ -17,6 +18,18 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 
 	fn setup(&mut self, engine: &mut CoreEngine<P, Self>) where Self: Sized {
 		engine.graphics_engine().create_output(0, PipelineKind::Default, OutputKind::Window);
+		let texture = engine.resource_engine().get().load_by_path::<ResTexture2D>("1.png", true).unwrap();
+
+		let scene = SceneTree::new();
+		
+		{
+			let mut scene = scene.lock().unwrap();
+			let sprite = Sprite2D::new(texture.clone());
+			
+			scene.add_node(sprite.into(), None);
+		}
+
+		engine.scene_engine().set_scene(0, scene);
 	}
 }
 

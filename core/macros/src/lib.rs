@@ -27,3 +27,18 @@ pub fn resources(input: TokenStream) -> TokenStream {
 
 	TokenStream::from(expanded)
 }
+
+#[proc_macro]
+pub fn node_impl_new(input: TokenStream) -> TokenStream {
+	let obj = parse_macro_input!(input as Expr);
+	let expanded = quote! {
+		{
+			let behaviour = #obj as &dyn NodeBehaviour;
+			base.set_behaviour(Some(behaviour));
+		}
+
+		#obj
+	};
+
+	TokenStream::from(expanded)
+}

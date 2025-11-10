@@ -1,29 +1,39 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
 
+#[cfg(feature = "signals")]
+use signals2::{Emit2, Signal};
+
 use crate::{Node, NodeBehaviour};
 
 pub struct SceneTree {
 	this: Option<Arc<Mutex<Self>>>,
 
 	nodes: HashMap<u32, Node>,
+	//behaviours: HashMap<u32, *const dyn NodeBehaviour>, // i <3 pointers
 	child_parent: HashMap<u32, u32>,
 	parent_children: HashMap<u32, Vec<u32>>,
 
-	root: u32
+	root: u32,
+
+	#[cfg(feature = "signals")] pub node_added: Signal<(*const Self, *const Node)>,
+	#[cfg(feature = "signals")] pub node_removed: Signal<(*const Self, *const Node)>,
 }
 
 impl SceneTree {
 	pub fn new() -> Arc<Mutex<Self>> {
-		let root = Node::with_id_name(0, "Root", vec![]);
+		let root = Node::with_id_name(0, "Root");
 
 		let this = Arc::new(Mutex::new(Self {
 			this: None,
 			nodes: HashMap::from([
 				(root.id(), root)
 			]),
+			//behaviours: HashMap::new(),
 			child_parent: HashMap::new(),
 			parent_children: HashMap::new(),
-			root: 0
+			root: 0,
+			#[cfg(feature = "signals")] node_added: Signal::new(),
+			#[cfg(feature = "signals")] node_removed: Signal::new(),
 		}));
 
 		{
@@ -67,6 +77,22 @@ impl SceneTree {
 
 		None
 	}
+
+	pub fn behaviour(&self, id: u32) -> Option<&dyn NodeBehaviour> {
+		self.nodes.get(&id).map(|n| n as &dyn NodeBehaviour)
+	}
+
+	// pub fn behaviour(&self, id: u32) -> Option<&Box<dyn NodeBehaviour>> {
+	// 	self.behaviours.get(&id)
+	// }
+
+	// pub fn set_behaviour(&mut self, id: u32, behaviour: Option<Box<dyn NodeBehaviour>>) {
+	// 	if behaviour.is_none() {
+	// 		self.behaviours.remove(&id);
+	// 	} else {
+	// 		self.behaviours.insert(id, behaviour.unwrap());
+	// 	}
+	// }
 
 	pub fn parent(&self, child: u32) -> u32 {
 		*self.child_parent.get(&child)
@@ -117,6 +143,33 @@ impl SceneTree {
 		}
 
 		node.enter_scene(self.this.as_ref().unwrap().clone());
+
+		#[cfg(feature = "signals")]
+		self.node_added.emit(self, &node);
+
+		//let a = &node as &dyn NodeBehaviour;
+		//self.behaviours.insert(node.id(), a);
 		self.nodes.insert(node.id(), node);
+	}
+
+	pub fn remove_node(&mut self, node: Node) {
+		let self_ptr = self as *const Self;
+
+		if let Some(children) = self.parent_children.get_mut(&node.id()) {
+			for child in children {
+				let child_node = self.nodes.get_mut(child).expect("A node has children that are not in the scene");
+				child_node.exit_scene();
+
+				#[cfg(feature = "signals")]
+				self.node_removed.emit(self_ptr, child_node);
+
+				self.nodes.remove(child);
+			}
+		}
+
+		#[cfg(feature = "signals")]
+		self.node_removed.emit(self, &node);
+
+		self.nodes.remove(&node.id());
 	}
 }
