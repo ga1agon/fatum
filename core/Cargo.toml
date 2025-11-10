@@ -14,7 +14,8 @@ path = "src/main.rs"
 [dependencies]
 fatum_graphics = { path = "../graphics" }
 fatum_resources = { path = "../resources" }
-fatum_scene = { path = "../scene", features = ["macros", "signals"] }
+fatum_scene = { path = "../scene", features = ["macros"] }
+fatum_signals = { path = "../signals" }
 fatum_macros = { path = "./macros" }
 ftail = "0.3.1"
 glam = { version = "0.30.9", features = ["bytemuck"] }
@@ -24,6 +25,7 @@ ron = "0.11.0"
 serde = { version = "1.0.228", features = ["derive"] }
 symlink = "0.1.0"
 signals2 = "0.3.3"
+lazy_static = "1.5.0"
 
 [dev-dependencies]
 simple_logger = "5.1.0"

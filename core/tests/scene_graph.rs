@@ -3,7 +3,7 @@ use std::{path::{Path, PathBuf}, str::FromStr};
 use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, nodes::Sprite2D, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
-use fatum_scene::SceneTree;
+use fatum_scene::SceneGraph;
 
 struct SceneGraphApplication<P: GraphicsPlatform + ResourcePlatform> {
 	_marker: std::marker::PhantomData<P>
@@ -20,7 +20,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 		engine.graphics_engine().create_output(0, PipelineKind::Default, OutputKind::Window);
 		let texture = engine.resource_engine().get().load_by_path::<ResTexture2D>("1.png", true).unwrap();
 
-		let scene = SceneTree::new();
+		let scene = SceneGraph::new();
 		
 		{
 			let mut scene = scene.lock().unwrap();

@@ -1,17 +1,20 @@
+use glam::Mat4;
 use glfw::{Context, PWindow};
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
 
 use crate::{Camera, Model, Rf, Vertex, platform::{GraphicsContext, opengl::{OpenGlContext, OpenGlWindow}}, render::*};
 use std::{cell::RefCell, collections::HashMap, hash::Hash, num::{NonZero, NonZeroU32}, rc::Rc, sync::atomic::{AtomicUsize, Ordering}, time};
 
-struct ObjectDrawData {
+struct ObjectData {
 	id: u64,
+	matrix: Mat4,
+
 	gl: Rc<glow::Context>,
 	vaos: Vec<NativeVertexArray>,
 	vbos: Vec<NativeBuffer>,
 }
 
-impl Drop for ObjectDrawData {
+impl Drop for ObjectData {
 	fn drop(&mut self) {
 		for vao in &self.vaos {
 			unsafe {
@@ -37,7 +40,7 @@ pub struct OpenGlRenderQueue {
 	last_process: time::Instant,
 	process_delta: time::Duration,
 
-	objects: HashMap<Rc<RenderObject>, ObjectDrawData>,
+	objects: HashMap<Rc<RenderObject>, ObjectData>,
 }
 
 impl OpenGlRenderQueue {
@@ -74,13 +77,13 @@ impl RenderQueue for OpenGlRenderQueue {
 		for (_, target) in &mut self.targets {
 			target.begin();
 
-			for (object, draw_data) in &self.objects {
+			for (object, data) in &self.objects {
 				let meshes = &object.model.meshes;
 
-				pipeline.matrix_data().set_data(vec![object.matrix].into());
+				pipeline.matrix_data().set_data(vec![data.matrix].into());
 				pipeline.matrix_data().push();
 
-				let vaos = &draw_data.vaos;
+				let vaos = &data.vaos;
 
 				for i in 0..object.model.meshes.len() {
 					let mesh = &meshes[i];
@@ -178,7 +181,7 @@ impl RenderQueue for OpenGlRenderQueue {
 		self.targets.remove(&index).is_some()
 	}
 	
-	fn add_object(&mut self, object: Rc<RenderObject>) -> bool {
+	fn add_object(&mut self, object: Rc<RenderObject>, matrix: Mat4) -> bool {
 		let gl = self.context.get();
 
 		let meshes = &object.model.meshes;
@@ -262,8 +265,9 @@ impl RenderQueue for OpenGlRenderQueue {
 
 		self.objects.insert(
 			object.clone(),
-			ObjectDrawData {
+			ObjectData {
 				id: object.id,
+				matrix,
 				gl: gl.clone(),
 				vaos,
 				vbos
@@ -271,6 +275,15 @@ impl RenderQueue for OpenGlRenderQueue {
 		);
 
 		true
+	}
+
+	fn set_object_matrix(&mut self, object: Rc<RenderObject>, matrix: Mat4) -> bool {
+		if let Some(data) = self.objects.get_mut(&object) {
+			data.matrix = matrix;
+			return true;
+		}
+
+		false
 	}
 	
 	fn remove_object(&mut self, object: &RenderObject) -> bool {

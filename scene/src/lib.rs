@@ -4,8 +4,17 @@ pub use scene::*;
 mod node;
 pub use node::*;
 
-mod graph;
-pub use graph::*;
+mod tree;
+pub use tree::*;
+
+mod component;
+pub use component::*;
+
+mod behaviour;
+pub use behaviour::*;
+
+mod base;
+pub use base::*;
 
 #[cfg(feature = "macros")]
 pub use fatum_scene_macros::*;

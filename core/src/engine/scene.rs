@@ -1,15 +1,15 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
 
-use fatum_graphics::platform::GraphicsPlatform;
+use fatum_graphics::{platform::GraphicsPlatform, render::{RenderObject, RenderQueue}};
 use fatum_resources::ResourcePlatform;
-use fatum_scene::{Node, NodeBehaviour, SceneTree};
+use fatum_scene::{Node, NodeBehaviour, SceneGraph};
 use signals2::Connect2;
 
-use crate::{Application, CoreEngine, GraphicsEngine};
+use crate::{Application, CoreEngine, GraphicsEngine, components::{Transform, Transform2D}};
 
 pub struct SceneEngine<P: GraphicsPlatform> {
 	graphics: Rc<RefCell<GraphicsEngine<P>>>,
-	scenes: HashMap<usize, Arc<Mutex<SceneTree>>>,
+	scenes: HashMap<usize, Arc<Mutex<SceneGraph>>>,
 }
 
 impl<P> SceneEngine<P> where P: GraphicsPlatform {
@@ -22,16 +22,16 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 		}
 	}
 
-	pub fn scene(&self, output_index: usize) -> Option<Arc<Mutex<SceneTree>>> {
+	pub fn scene(&self, output_index: usize) -> Option<Arc<Mutex<SceneGraph>>> {
 		self.scenes.get(&output_index).map_or(None, |v| Some(v.clone()))
 	}
 
-	pub fn set_scene(&mut self, output_index: usize, scene: Arc<Mutex<SceneTree>>) -> Option<bool> {
+	pub fn set_scene(&mut self, output_index: usize, scene: Arc<Mutex<SceneGraph>>) -> Option<bool> {
 		let mut graphics = self.graphics.borrow_mut();
 
 		let queue = graphics.get_output(output_index)?;
 
-		fn node_ready(scene: Arc<Mutex<SceneTree>>, node: &mut Node) {
+		fn node_ready(queue: &mut Box<dyn RenderQueue>, scene: Arc<Mutex<SceneGraph>>, node: &mut Node) {
 			let mut locked = scene.lock().unwrap();
 			let children = locked.children(node.id());
 
@@ -41,10 +41,15 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 
 				// TODO also do some shit like adding renderable nodes to queue i think
 				
-				node_ready(scene.clone(), child_node);
+				node_ready(queue, scene.clone(), child_node);
 			}
 
-			node.ready();
+			if let Some(render_object) = node.component::<RenderObject>()
+				&& let Some(transform2d) = node.component::<Transform2D>()
+			{
+				queue.add_object(Rc::new(render_object), transform2d.local_matrix());
+			}
+			//node.ready();
 		}
 		
 		{
@@ -60,12 +65,12 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 			}
 		}
 
-		if let Ok(scene) = scene.lock() {
-			scene.node_added.connect(|scene, node| {
+		if let Ok(scene) = scene.lock().as_mut() {
+			scene.node_added.connect(|(scene, node)| {
 				// TODO add to queue
 			});
 
-			scene.node_removed.connect(|scene, node| {
+			scene.node_removed.connect(|(scene, node)| {
 				// TODO remove from queue
 			});
 		}

@@ -53,8 +53,8 @@ fn opengl_textures() {
 	let scale = Vec3::new(1.0, 1.0, 1.0);
 	let matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
 
-	let square_object = Rc::new(RenderObject::new(square, matrix));
-	queue.add_object(square_object);
+	let square_object = Rc::new(RenderObject::new(square));
+	queue.add_object(square_object, matrix);
 
 	let camera = Camera2D {
 		position: Vec2::ZERO,

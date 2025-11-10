@@ -1,46 +1,47 @@
-use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
+use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}, vec};
 
-#[cfg(feature = "signals")]
-use signals2::{Emit2, Signal};
+use fatum_signals::StaticSignal;
 
-use crate::{Node, NodeBehaviour};
+use crate::{Node, NodeBehaviour, NodeComponent, NodeId};
 
-pub struct SceneTree {
+pub struct SceneGraph {
 	this: Option<Arc<Mutex<Self>>>,
 
-	nodes: HashMap<u32, Node>,
-	//behaviours: HashMap<u32, *const dyn NodeBehaviour>, // i <3 pointers
-	child_parent: HashMap<u32, u32>,
-	parent_children: HashMap<u32, Vec<u32>>,
+	nodes: HashMap<NodeId, Node>,
+	// components: HashMap<NodeId, Vec<*const dyn NodeComponent>>,
+	// behaviours: HashMap<NodeId, Vec<*const dyn NodeBehaviour>>, // i <3 pointers
+	child_parent: HashMap<NodeId, NodeId>,
+	parent_children: HashMap<NodeId, Vec<NodeId>>,
 
-	root: u32,
+	root: NodeId,
 
-	#[cfg(feature = "signals")] pub node_added: Signal<(*const Self, *const Node)>,
-	#[cfg(feature = "signals")] pub node_removed: Signal<(*const Self, *const Node)>,
+	pub node_added: StaticSignal<(*const Self, *const Node)>,
+	pub node_removed: StaticSignal<(*const Self, *const Node)>,
 }
 
-impl SceneTree {
+impl SceneGraph {
 	pub fn new() -> Arc<Mutex<Self>> {
-		let root = Node::with_id_name(0, "Root");
+		let root = Node::with_id_name(0, "SceneRoot");
 
 		let this = Arc::new(Mutex::new(Self {
 			this: None,
 			nodes: HashMap::from([
 				(root.id(), root)
 			]),
-			//behaviours: HashMap::new(),
+			// components: HashMap::new(),
+			// behaviours: HashMap::new(),
 			child_parent: HashMap::new(),
 			parent_children: HashMap::new(),
 			root: 0,
-			#[cfg(feature = "signals")] node_added: Signal::new(),
-			#[cfg(feature = "signals")] node_removed: Signal::new(),
+			node_added: StaticSignal::new(),
+			node_removed: StaticSignal::new(),
 		}));
 
 		{
 			// TODO this is extremely concerning
 			let mut scene = this.lock().unwrap();
 			scene.this = Some(this.clone());
-			scene.nodes.get_mut(&0).unwrap().enter_scene(this.clone());
+			scene.nodes.get_mut(&0).unwrap().enter_scene(0, this.clone());
 		}
 
 		this
@@ -50,11 +51,11 @@ impl SceneTree {
 		self.nodes.get(&self.root).unwrap()
 	}
 
-	pub fn node(&self, id: u32) -> Option<&Node> {
+	pub fn node(&self, id: NodeId) -> Option<&Node> {
 		self.nodes.get(&id)
 	}
 
-	pub fn node_mut(&mut self, id: u32) -> Option<&mut Node> {
+	pub fn node_mut(&mut self, id: NodeId) -> Option<&mut Node> {
 		self.nodes.get_mut(&id)
 	}
 
@@ -78,46 +79,58 @@ impl SceneTree {
 		None
 	}
 
-	pub fn behaviour(&self, id: u32) -> Option<&dyn NodeBehaviour> {
-		self.nodes.get(&id).map(|n| n as &dyn NodeBehaviour)
-	}
-
-	// pub fn behaviour(&self, id: u32) -> Option<&Box<dyn NodeBehaviour>> {
-	// 	self.behaviours.get(&id)
+	// pub fn behaviour(&self, id: u32) -> Option<&dyn NodeBehaviour> {
+	// 	self.nodes.get(&id).map(|n| n as &dyn NodeBehaviour)
 	// }
 
-	// pub fn set_behaviour(&mut self, id: u32, behaviour: Option<Box<dyn NodeBehaviour>>) {
-	// 	if behaviour.is_none() {
-	// 		self.behaviours.remove(&id);
+	// pub fn components(&self, id: NodeId) -> Option<&Vec<*const dyn NodeComponent>> {
+	// 	self.components.get(&id)
+	// }
+
+	// pub fn behaviours(&self, id: NodeId) -> Option<&Vec<*const dyn NodeBehaviour>> {
+	// 	self.behaviours.get(&id)
+	// 		// .map_or_else(|| {
+	// 		// 	Vec::new() as Vec<Box<dyn NodeBehaviour>>
+	// 		// }, |v| {
+	// 		// 	v
+	// 		// })
+	// }
+
+	// pub fn add_behaviour<B: NodeBehaviour + 'static>(&mut self, id: NodeId) {
+	// 	let behaviour = node.as_any().downcast_ref::<B>()
+	// 		.expect(format!("Node {} does not implement behaviour {}", std::any::type_name::<N>(), std::any::type_name::<B>()).as_str());
+
+	// 	if let Some(behaviours) = self.behaviours.get_mut(&id) {
+	// 		behaviours.push(behaviour); // this can very easily go out of scope and kill itself no?
 	// 	} else {
-	// 		self.behaviours.insert(id, behaviour.unwrap());
+	// 		self.behaviours.insert(id, vec![behaviour]);
 	// 	}
 	// }
 
-	pub fn parent(&self, child: u32) -> u32 {
+	pub fn parent(&self, child: NodeId) -> NodeId {
 		*self.child_parent.get(&child)
 			.expect("How did we end up with a lost little lamb with no parent?")
 	}
 
-	pub fn children(&self, parent: u32) -> Vec<u32> {
+	pub fn children(&self, parent: NodeId) -> Vec<NodeId> {
 		self.parent_children.get(&parent)
 			.map_or_else(|| {
-				Vec::new() as Vec<u32>
+				Vec::new() as Vec<NodeId>
 			}, |v| {
 				v.clone()
 			})
 	}
 
-	pub fn children_slice(&self, parent: u32) -> &[u32] {
+	pub fn children_slice(&self, parent: NodeId) -> &[NodeId] {
 		self.parent_children.get(&parent)
 			.map_or_else(|| {
-				&[] as &[u32]
+				&[] as &[NodeId]
 			}, |v| {
 				v.as_slice()
 			})
 	}
 
-	pub fn child(&self, parent: u32, index: usize) -> Option<u32> {
+	pub fn child(&self, parent: NodeId, index: usize) -> Option<NodeId> {
 		if let Some(children) = self.parent_children.get(&parent) {
 			return children.get(index).copied();
 		}
@@ -125,31 +138,28 @@ impl SceneTree {
 		None
 	}
 
-	pub fn add_node(&mut self, mut node: Node, parent: Option<u32>) {
+	pub fn add_node(&mut self, mut node: Node, parent: Option<NodeId>) {
 		// let parent_node = if let Some(parent) = parent {
 		// 	self.nodes.get(&parent)
 		// } else {
 		// 	None
 		// };
 
-		node.set_id((self.nodes.len() + 1) as u32);
-		
-		let parent = parent.unwrap_or_default();
+		//node.set_id((self.nodes.len() + 1) as u32);
+		let new_id = self.nodes.len() as NodeId;
+		let parent = parent.unwrap_or_default(); // default == 0 == root
 		
 		if let Some(children) = self.parent_children.get_mut(&parent) {
-			children.push(node.id());
+			children.push(new_id);
 		} else {
-			self.parent_children.insert(parent, vec![node.id()]);
+			self.parent_children.insert(parent, vec![new_id]);
 		}
 
-		node.enter_scene(self.this.as_ref().unwrap().clone());
+		node.enter_scene(new_id, self.this.as_ref().unwrap().clone());
 
-		#[cfg(feature = "signals")]
-		self.node_added.emit(self, &node);
+		self.node_added.emit((self, &node));
 
-		//let a = &node as &dyn NodeBehaviour;
-		//self.behaviours.insert(node.id(), a);
-		self.nodes.insert(node.id(), node);
+		self.nodes.insert(new_id, node);
 	}
 
 	pub fn remove_node(&mut self, node: Node) {
@@ -157,19 +167,19 @@ impl SceneTree {
 
 		if let Some(children) = self.parent_children.get_mut(&node.id()) {
 			for child in children {
-				let child_node = self.nodes.get_mut(child).expect("A node has children that are not in the scene");
+				let child_node = self.nodes.get_mut(child).expect("A node has children that are not in its scene");
 				child_node.exit_scene();
 
-				#[cfg(feature = "signals")]
-				self.node_removed.emit(self_ptr, child_node);
+				self.node_removed.emit((self_ptr, child_node));
 
 				self.nodes.remove(child);
+				// TODO this should be recursive
 			}
 		}
 
-		#[cfg(feature = "signals")]
-		self.node_removed.emit(self, &node);
+		self.node_removed.emit((self, &node));
 
 		self.nodes.remove(&node.id());
+		//self.behaviours.remove(&node.id());
 	}
 }

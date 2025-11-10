@@ -1,11 +1,8 @@
 pub mod resources;
 pub mod build;
 pub mod nodes;
-
-mod transform;
-use std::sync::{Arc, Mutex, MutexGuard};
-
-pub use transform::*;
+pub mod behaviours;
+pub mod components;
 
 mod app;
 pub use app::*;

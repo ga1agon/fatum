@@ -37,8 +37,8 @@ fn opengl_hello_triangle() {
 	let scale = Vec3::new(1.0, 1.0, 1.0);
 	let matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
 
-	let triangle_object = Rc::new(RenderObject::new(triangle, matrix));
-	queue.add_object(triangle_object);
+	let triangle_object = Rc::new(RenderObject::new(triangle));
+	queue.add_object(triangle_object, matrix);
 
 	let camera = Camera2D {
 		position: Vec2::new(-200.0, -50.0),
