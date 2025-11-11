@@ -24,7 +24,7 @@ fn opengl_textures() {
 	let mut resources = Resources::new(platform.clone().into(), Path::new(file!()).parent().unwrap().join(env!("CARGO_MANIFEST_DIR")).join("tests/assets"));
 	let texture = resources.load_by_path::<ResTexture2D>("1.png", false).unwrap();
 
-	let square = Model {
+	let square = Rc::new(Box::new(Model {
 		meshes: vec![
 			Mesh {
 				vertices: vec![
@@ -50,15 +50,15 @@ fn opengl_textures() {
 				)
 			}
 		]
-	};
+	}));
 
 	let translation = Vec3::new(0.0, 0.0, 0.0);
 	let rotation = Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0);
 	let scale = Vec3::new(1.0, 1.0, 1.0);
 	let matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
 
-	let square_object = Rc::new(RenderObject::new(square));
-	queue.add_object(square_object, matrix);
+	let square_object = RenderObject::new(square);
+	queue.add_object(&square_object, matrix);
 
 	let camera = Camera2D {
 		position: Vec2::ZERO,

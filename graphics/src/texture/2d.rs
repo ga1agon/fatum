@@ -3,6 +3,6 @@ use crate::{platform::GraphicsPlatform, texture::{Filter, Format, Options, WrapM
 pub trait Texture2D {
 	fn bind(&mut self, unit: usize);
 
-	fn handle(&self) -> u64;
+	fn handle(&self) -> u32;
 	fn options(&self) -> Options;
 }

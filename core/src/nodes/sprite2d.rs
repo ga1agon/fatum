@@ -1,49 +1,41 @@
-use std::{cell::RefCell, rc::Rc, sync::OnceLock};
+use std::{cell::{LazyCell, OnceCell, RefCell}, rc::Rc, sync::{Arc, Mutex}};
 
 use fatum_graphics::{Color, Material, Mesh, Model, Vertex, render::RenderObject, texture::Texture2D};
 use fatum_macros::node_impl_new;
-use fatum_scene::{Node, NodeBehaviour};
+use fatum_scene::{Node, NodeBehaviour, NodeComponent, NodeId, SceneGraph};
 use glam::{Vec2, Vec3};
 use lazy_static::lazy_static;
+use static_init::dynamic;
 use crate::{behaviours::{ObjectRenderable, Renderable}, nodes::Node2D, resources::ResTexture2D};
 
-fn unit_quad() -> &'static Model {
-	static UNIT_QUAD: OnceLock<Model> = OnceLock::new();
-	UNIT_QUAD.get_or_init(|| {
-		Model {
-			meshes: vec![
-				Mesh {
-					vertices: vec![
-						Vertex::new(Vec3::new(0.0, 0.0, 0.0), Default::default(), Default::default(), Default::default(), Vec2::new(0.0, 0.0)),
-						Vertex::new(Vec3::new(0.0, 200.0, 0.0), Default::default(), Default::default(), Default::default(), Vec2::new(0.0, 1.0)),
-						Vertex::new(Vec3::new(200.0, 200.0, 0.0), Default::default(), Default::default(), Default::default(), Vec2::new(1.0, 1.0)),
-						Vertex::new(Vec3::new(200.0, 0.0, 0.0), Default::default(), Default::default(), Default::default(), Vec2::new(1.0, 0.0)),
-					],
-					indices: vec![
-						0u32, 1u32, 2u32,
-						0u32, 2u32, 3u32
-					],
-					material: Material::default()
-				}
-			]
-		}
-	})
-}
+// #[dynamic]
+// static UNIT_QUAD: Model = Model {
+// 	meshes: vec![
+// 		Mesh {
+// 			vertices: vec![
+// 				Vertex::new(Vec3::new(0.0, 0.0, 0.0), Default::default(), Default::default(), Default::default(), Vec2::new(0.0, 0.0)),
+// 				Vertex::new(Vec3::new(0.0, 200.0, 0.0), Default::default(), Default::default(), Default::default(), Vec2::new(0.0, 1.0)),
+// 				Vertex::new(Vec3::new(200.0, 200.0, 0.0), Default::default(), Default::default(), Default::default(), Vec2::new(1.0, 1.0)),
+// 				Vertex::new(Vec3::new(200.0, 0.0, 0.0), Default::default(), Default::default(), Default::default(), Vec2::new(1.0, 0.0)),
+// 			],
+// 			indices: vec![
+// 				0u32, 1u32, 2u32,
+// 				0u32, 2u32, 3u32
+// 			],
+// 			material: Material::default()
+// 		}
+// 	]
+// };
 
-pub fn Sprite2D(sprite2d: Box<Sprite2D>) -> Node {
-	let mut node = Node2D();
+// pub fn Sprite2D(sprite2d: Box<Sprite2D>) -> Node {
+// 	let mut node = Node2D();
 
-	let mut model = unit_quad().clone();
-	model.meshes[0].material.map_0 = sprite2d.texture.borrow().get().handle() as u32;
+// 	let mut model = Box::new(UNIT_QUAD.clone());
+// 	model.meshes[0].material.map_0 = sprite2d.texture.borrow().get().handle() as u32;
 	
-	node.add_component(sprite2d);
-	node.add_component(Box::new(RenderObject::new(model)));
-	node
-}
-
-pub struct Sprite2D {
-	pub texture: Rc<RefCell<ResTexture2D>>
-}
+// 	node.add_component(sprite2d);
+// 	node
+// }
 
 // impl ObjectRenderable for Sprite2D {
 

@@ -1,8 +1,9 @@
 use std::{any::Any, rc::Rc, sync::{Arc, Mutex, atomic::Ordering}};
 
+use fatum_signals::{Signal, StaticSignal};
 use rand::{Rng, distr::{Alphabetic, SampleString}};
 
-use crate::{NodeBehaviour, NodeComponent, SceneGraph, lock_opt_mutex_unchecked};
+use crate::{NodeBehaviour, NodeComponent, SceneGraph, SharedSceneGraph, lock_opt_mutex_unchecked};
 
 pub type NodeId = u32;
 
@@ -10,9 +11,12 @@ pub struct Node {
 	id: NodeId,
 	name: String,
 	
-	scene: Option<Arc<Mutex<SceneGraph>>>,
+	scene: Option<SharedSceneGraph>,
 	components: Vec<Box<dyn NodeComponent>>,
 	behaviours: Vec<Box<dyn NodeBehaviour>>,
+
+	pub component_added: StaticSignal<(*const Node, *const Box<dyn NodeComponent>)>,
+	pub component_removed: StaticSignal<(*const Node, *const Box<dyn NodeComponent>)>,
 }
 
 impl Node {
@@ -30,7 +34,9 @@ impl Node {
 			name: name.to_string(),
 			scene: None,
 			components: vec![],
-			behaviours: vec![]
+			behaviours: vec![],
+			component_added: StaticSignal::new(),
+			component_removed: StaticSignal::new()
 		}
 	}
 
@@ -39,9 +45,9 @@ impl Node {
 	pub fn name(&self) -> &str { &self.name }
 	pub fn set_name(&mut self, name: &str) { self.name = name.to_string() }
 
-	pub fn scene(&self) -> Option<Arc<Mutex<SceneGraph>>> { self.scene.clone() }
-	pub fn parent(&self) -> NodeId { lock_opt_mutex_unchecked(&self.scene).parent(self.id) }
-	pub fn children(&self) -> Vec<u32> { lock_opt_mutex_unchecked(&self.scene).children(self.id) }
+	pub fn scene(&self) -> Option<SharedSceneGraph> { self.scene.clone() }
+	pub fn parent(&self) -> NodeId { self.scene.as_ref().unwrap().read().unwrap().parent(self.id) }
+	pub fn children(&self) -> Vec<u32> { self.scene.as_ref().unwrap().read().unwrap().children(self.id) }
 	//pub fn components(&self) -> Vec<Box<dyn NodeComponent>> { lock_opt_mutex_unchecked(&self.scene).components(self.id) }
 
 	pub fn component<T: NodeComponent>(&self) -> Option<&T> {
@@ -69,7 +75,29 @@ impl Node {
 	}
 
 	pub fn components(&self) -> &Vec<Box<dyn NodeComponent>> { &self.components }
-	pub fn add_component(&mut self, component: Box<dyn NodeComponent>) { self.components.push(component) }
+	// TODO check if component already exists
+	pub fn add_component(&mut self, mut component: Box<dyn NodeComponent>) {
+		if let Some(scene) = &self.scene {
+			component.enter_scene(self.id, scene.clone());
+		}
+		
+		self.component_added.emit((self, &component));
+		self.components.push(component);
+	}
+
+	pub fn remove_component<T: NodeComponent>(&mut self) -> bool {
+		for i in 0..self.components.len() {
+			let component = &self.components[i];
+
+			if component.as_any().is::<T>() {
+				self.component_removed.emit((self, component));
+				self.components.remove(i);
+				return true;
+			}
+		}
+
+		false
+	}
 
 	pub fn behaviour<T: NodeComponent>(&self) -> Option<&T> {
 		for behaviour in &self.behaviours {
@@ -101,14 +129,25 @@ impl Node {
 		self.behaviours.push(behaviour);
 	}
 
-	pub fn enter_scene(&mut self, id: NodeId, scene: Arc<Mutex<SceneGraph>>) {
+	pub fn enter_scene(&mut self, id: NodeId, scene: SharedSceneGraph) {
 		self.id = id;
-		self.scene = Some(scene);
+		self.scene = Some(scene.clone());
+
+		for component in &mut self.components {
+			component.enter_scene(id, scene.clone());
+		}
 	}
 
 	pub fn exit_scene(&mut self) {
 		self.id = 0;
 		self.scene = None;
+		
+		self.component_added.clear();
+		self.component_removed.clear();
+
+		for component in &mut self.components {
+			component.exit_scene();
+		}
 	}
 
 	pub fn as_any(&self) -> &dyn std::any::Any { self }

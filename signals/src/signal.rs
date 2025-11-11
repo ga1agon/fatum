@@ -9,6 +9,8 @@ pub trait Signal {
 
 	/// This function is DANGEROUS and should be used with CAUTION!!!
 	fn emit_any(&self, args: &dyn Any);
+
+	fn clear(&mut self);
 }
 
 pub struct StaticSignal<Args: Copy + 'static> {
@@ -96,6 +98,10 @@ impl<Args> Signal for StaticSignal<Args> where Args: Copy + 'static {
 		for handler in &self.handlers {
 			handler.as_ref().call((args,));
 		}
+	}
+
+	fn clear(&mut self) {
+		self.handlers.clear();
 	}
 }
 

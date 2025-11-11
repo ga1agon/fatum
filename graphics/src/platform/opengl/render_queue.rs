@@ -40,7 +40,7 @@ pub struct OpenGlRenderQueue {
 	last_process: time::Instant,
 	process_delta: time::Duration,
 
-	objects: HashMap<Rc<RenderObject>, ObjectData>,
+	objects: HashMap<RenderObject, ObjectData>,
 }
 
 impl OpenGlRenderQueue {
@@ -181,7 +181,7 @@ impl RenderQueue for OpenGlRenderQueue {
 		self.targets.remove(&index).is_some()
 	}
 	
-	fn add_object(&mut self, object: Rc<RenderObject>, matrix: Mat4) -> bool {
+	fn add_object(&mut self, object: &RenderObject, matrix: Mat4) -> bool {
 		let gl = self.context.get();
 
 		let meshes = &object.model.meshes;
@@ -277,8 +277,8 @@ impl RenderQueue for OpenGlRenderQueue {
 		true
 	}
 
-	fn set_object_matrix(&mut self, object: Rc<RenderObject>, matrix: Mat4) -> bool {
-		if let Some(data) = self.objects.get_mut(&object) {
+	fn set_object_matrix(&mut self, object: &RenderObject, matrix: Mat4) -> bool {
+		if let Some(data) = self.objects.get_mut(object) {
 			data.matrix = matrix;
 			return true;
 		}

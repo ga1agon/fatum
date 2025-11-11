@@ -2,12 +2,15 @@ use std::{cell::RefCell, collections::HashMap, fs::File, io::{BufReader, Read}, 
 
 use crate::{Resource, ResourceMetadata, ResourcePlatform, Rf, error::{ErrorKind, ResourceError}, rf};
 
+pub type DynResourceRef<P: ResourcePlatform> = Rc<RefCell<Box<dyn Resource<P>>>>;
+pub type ResourceRef<T> = Rc<RefCell<Box<T>>>;
+
 // TODO resources should probably be stored in an Arc<Mutex<>>
 pub struct Resources<Pl> where Pl: ResourcePlatform {
 	pub platform: Rc<Pl>,
 	assets_directory: PathBuf,
-	resources_by_id: HashMap<u64, Rf<Box<dyn Resource<Pl>>>>,
-	resources_by_path: HashMap<PathBuf, Rf<Box<dyn Resource<Pl>>>>,
+	resources_by_id: HashMap<u64, DynResourceRef<Pl>>,
+	resources_by_path: HashMap<PathBuf, DynResourceRef<Pl>>,
 }
 
 impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
@@ -20,7 +23,7 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 		}
 	}
 
-	pub fn load_by_path<T>(&mut self, location: &str, cache: bool) -> Result<Rf<Box<T>>, ResourceError>
+	pub fn load_by_path<T>(&mut self, location: &str, cache: bool) -> Result<ResourceRef<T>, ResourceError>
 		where T: Resource<Pl> + 'static
 	{
 		let mut asset_path = self.assets_directory.clone();

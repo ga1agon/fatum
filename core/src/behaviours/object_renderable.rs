@@ -18,12 +18,6 @@ impl ObjectRenderable {
 	}
 }
 
-impl Renderable for ObjectRenderable {
-	fn render(delta: std::time::Duration) {
-		todo!()
-	}
-}
-
 impl NodeBehaviour for ObjectRenderable {
 	fn setup(&mut self) {
 		

@@ -89,6 +89,8 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 		self.running = true;
 
 		while self.running {
+			self.scene_engine().process();
+			
 			if !self.graphics_engine().process() {
 				self.running = false;
 			}
