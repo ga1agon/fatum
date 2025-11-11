@@ -36,7 +36,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 
 			let mut sprite2 = Sprite2D::new_node(texture.clone());
 			sprite2.component_mut::<Transform2D>().unwrap()
-				.set_translation(Vec2::new(400.0, 400.0));
+				.set_translation(Vec2::new(1024.0 / 2.0, 768.0 / 2.0)); // this won't be in the window's center, because it's a parent of sprite
 			sprite2.component_mut::<Transform2D>().unwrap()
 				.set_scale(Vec2::new(2.0, 3.0));
 

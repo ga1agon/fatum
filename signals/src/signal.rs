@@ -1,4 +1,4 @@
-use std::{any::Any, sync::{Arc, RwLock, RwLockReadGuard}};
+use std::{any::Any, collections::HashMap, sync::{Arc, RwLock, RwLockReadGuard}};
 
 pub trait Signal {
 	/// This function is DANGEROUS and should be used with CAUTION!!!
@@ -14,18 +14,28 @@ pub trait Signal {
 }
 
 pub struct StaticSignal<Args: Copy + 'static> {
-	handlers: Vec<Box<dyn Fn(&Args) -> ()>>
+	handlers: Vec<Box<dyn Fn(&Args) -> ()>>,
+	capture_handlers: Vec<Box<dyn Fn(&Vec<*mut std::ffi::c_void>, &Args) -> ()>>,
+	captures: Vec<Vec<*mut std::ffi::c_void>>
 }
 
 impl<Args> StaticSignal<Args> where Args: Copy + 'static {
 	pub fn new() -> Self {
 		Self {
-			handlers: Vec::new()
+			handlers: Vec::new(),
+			capture_handlers: Vec::new(),
+			captures: Vec::new()
 		}
 	}
 
 	pub fn connect<F: Fn(&Args) -> () + 'static>(&mut self, handler: F) {
 		self.handlers.push(Box::new(handler));
+	}
+
+	// i don't think i can even explain this one
+	pub fn connect_capture<F: Fn(&Vec<*mut std::ffi::c_void>, &Args) -> () + 'static>(&mut self, capture: Vec<*mut std::ffi::c_void>, handler: F) {
+		self.capture_handlers.push(Box::new(handler));
+		self.captures.push(capture);
 	}
 
 	pub fn disconnect<F: Fn(&Args) -> () + 'static>(&mut self, handler: F) {
@@ -49,7 +59,14 @@ impl<Args> StaticSignal<Args> where Args: Copy + 'static {
 
 	pub fn emit(&self, args: Args) {
 		for handler in &self.handlers {
-			handler.as_ref().call((&args,));
+			(handler.as_ref())(&args);
+		}
+
+		for i in 0..self.capture_handlers.len() {
+			let handler = &self.capture_handlers[i];
+			let capture = &self.captures[i];
+
+			(handler.as_ref())(capture, &args);
 		}
 	}
 }
@@ -102,6 +119,8 @@ impl<Args> Signal for StaticSignal<Args> where Args: Copy + 'static {
 
 	fn clear(&mut self) {
 		self.handlers.clear();
+		self.capture_handlers.clear();
+		self.captures.clear();
 	}
 }
 

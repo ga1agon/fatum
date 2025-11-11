@@ -44,21 +44,35 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 				let node = scene.node_mut(node)
 					.expect("An invalid node was provided by the post-order DFS traverse iterator?");
 
-				if let Some(model) = node.component::<Model>()
-					&& let Some(transform2d) = node.component::<Transform2D>()
-				{
+				if let Some(model) = node.component::<Model>() {
 					let render_object: RenderObject = model.into();
-					queue.add_object(&render_object, transform2d.global_matrix);
+					queue.add_object(&render_object, Mat4::IDENTITY);
 				}
 
-				if let Some(model) = node.component::<Model>()
-					&& let Some(transform3d) = node.component::<Transform3D>()
-				{
-					let render_object: RenderObject = model.into();
-					queue.add_object(&render_object, transform3d.global_matrix);
-				}
+				// :3
+				node.component_added.connect_capture(vec![queue as *mut _ as *mut std::ffi::c_void], |captures, args| {
+					unsafe {
+						let queue = &mut *(captures[0] as *mut Box<dyn RenderQueue>);
+						let component = &*args.1;
 
-				// TODO on component added/removed model
+						if let Some(model) = component.as_any().downcast_ref::<Model>() {
+							let render_object: RenderObject = model.into();
+							queue.add_object(&render_object, Mat4::IDENTITY);
+						}
+					}
+				});
+
+				node.component_removed.connect_capture(vec![queue as *mut _ as *mut std::ffi::c_void], |captures, args| {
+					unsafe {
+						let queue = &mut *(captures[0] as *mut Box<dyn RenderQueue>);
+						let component = &*args.1;
+
+						if let Some(model) = component.as_any().downcast_ref::<Model>() {
+							let render_object: RenderObject = model.into();
+							queue.remove_object(&render_object);
+						}
+					}
+				});
 
 				// node ready
 			}
@@ -67,12 +81,28 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 		{
 			let mut scene = scene.write().unwrap();
 
-			scene.node_added.connect(|(scene, node)| {
-				// TODO add to queue
+			scene.node_added.connect_capture(vec![queue as *mut _ as *mut std::ffi::c_void], |captures, args| {
+				unsafe {
+					let queue = &mut *(captures[0] as *mut Box<dyn RenderQueue>);
+					let node = &*args.1;
+
+					if let Some(model) = node.component::<Model>() {
+						let render_object: RenderObject = model.into();
+						queue.add_object(&render_object, Mat4::IDENTITY);
+					}
+				}
 			});
 
-			scene.node_removed.connect(|(scene, node)| {
-				// TODO remove from queue
+			scene.node_removed.connect_capture(vec![queue as *mut _ as *mut std::ffi::c_void], |captures, args| {
+				unsafe {
+					let queue = &mut *(captures[0] as *mut Box<dyn RenderQueue>);
+					let node = &*args.1;
+
+					if let Some(model) = node.component::<Model>() {
+						let render_object: RenderObject = model.into();
+						queue.remove_object(&render_object);
+					}
+				}
 			});
 		}
 

@@ -51,6 +51,7 @@ impl Node {
 	//pub fn components(&self) -> Vec<Box<dyn NodeComponent>> { lock_opt_mutex_unchecked(&self.scene).components(self.id) }
 
 	pub fn component<T: NodeComponent>(&self) -> Option<&T> {
+		// TODO store in a HashMap for fast lookup
 		for component in &self.components {
 			let component_any = component.as_any();
 
@@ -80,7 +81,7 @@ impl Node {
 		if let Some(scene) = &self.scene {
 			component.enter_scene(self.id, scene.clone());
 		}
-		
+
 		self.component_added.emit((self, &component));
 		self.components.push(component);
 	}

@@ -224,25 +224,21 @@ impl SceneGraph {
 		new_id
 	}
 
-	pub fn remove_node(&mut self, mut node: Node) {
+	pub fn remove_node(&mut self, node: Node) {
 		let self_ptr = self as *const Self;
 
-		if let Some(children) = self.parent_children.get_mut(&node.id()) {
-			for child in children {
-				let child_node = self.nodes.get_mut(child).expect("A node has children that are not in its scene");
-				child_node.exit_scene();
-
-				self.node_removed.emit((self_ptr, child_node));
-
-				self.nodes.remove(child);
-				// TODO this should be recursive
+		// get this node and all of its children with the post order DFS algorithm and remove them
+		for node in ScenePostDfsIterator::new(self.this.clone().unwrap(), node.id()) {
+			{
+				if let Some(node) = self.nodes.get_mut(&node) {
+					node.exit_scene();
+					self.node_removed.emit((self_ptr, node));
+				}
 			}
+
+			// TODO uhhhh not 100% sure if this won't hit some concurrency shit and mess up the iterator
+			self.nodes.remove(&node);
 		}
-
-		node.exit_scene();
-		self.node_removed.emit((self, &node));
-
-		self.nodes.remove(&node.id());
 	}
 }
 
