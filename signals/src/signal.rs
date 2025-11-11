@@ -13,13 +13,13 @@ pub trait Signal {
 	fn clear(&mut self);
 }
 
-pub struct StaticSignal<Args: Copy + 'static> {
+pub struct StaticSignal<Args: 'static> {
 	handlers: Vec<Box<dyn Fn(&Args) -> ()>>,
 	capture_handlers: Vec<Box<dyn Fn(&Vec<*mut std::ffi::c_void>, &Args) -> ()>>,
 	captures: Vec<Vec<*mut std::ffi::c_void>>
 }
 
-impl<Args> StaticSignal<Args> where Args: Copy + 'static {
+impl<Args> StaticSignal<Args> where Args: 'static {
 	pub fn new() -> Self {
 		Self {
 			handlers: Vec::new(),
@@ -71,7 +71,7 @@ impl<Args> StaticSignal<Args> where Args: Copy + 'static {
 	}
 }
 
-impl<Args> Signal for StaticSignal<Args> where Args: Copy + 'static {
+impl<Args> Signal for StaticSignal<Args> where Args: 'static {
 	fn connect_any(&mut self, handler: Box<dyn Any>) {
 		let handler_type_name = std::any::type_name_of_val(&handler);
 

@@ -1,6 +1,6 @@
-use std::{any::Any, rc::Rc, sync::{Arc, Mutex, atomic::Ordering}};
+use std::{any::Any, collections::HashMap, rc::Rc, sync::{Arc, Mutex, atomic::Ordering}};
 
-use fatum_signals::{Signal, StaticSignal};
+use fatum_signals::{Signal, SignalDispatcher, StaticSignal};
 use rand::{Rng, distr::{Alphabetic, SampleString}};
 
 use crate::{NodeBehaviour, NodeComponent, SceneGraph, SharedSceneGraph, lock_opt_mutex_unchecked};
@@ -17,6 +17,8 @@ pub struct Node {
 
 	pub component_added: StaticSignal<(*const Node, *const Box<dyn NodeComponent>)>,
 	pub component_removed: StaticSignal<(*const Node, *const Box<dyn NodeComponent>)>,
+
+	signals: HashMap<String, Box<dyn Signal>>
 }
 
 impl Node {
@@ -29,15 +31,25 @@ impl Node {
 	}
 
 	pub fn with_id_name(id: u32, name: &str) -> Self {
-		Self {
+		let mut this = Self {
 			id,
 			name: name.to_string(),
 			scene: None,
 			components: vec![],
 			behaviours: vec![],
 			component_added: StaticSignal::new(),
-			component_removed: StaticSignal::new()
-		}
+			component_removed: StaticSignal::new(),
+			signals: HashMap::new()
+		};
+
+		this.create_signal::<()>("enter_tree");
+		this.create_signal::<()>("exit_tree");
+		this.create_signal::<()>("ready");
+
+		this.create_signal::<std::time::Duration>("update");
+		this.create_signal_mut::<std::time::Duration>("$update");
+
+		this
 	}
 
 	pub fn id(&self) -> NodeId { self.id }
@@ -137,9 +149,13 @@ impl Node {
 		for component in &mut self.components {
 			component.enter_scene(id, scene.clone());
 		}
+
+		self.emit("enter_scene", ());
 	}
 
 	pub fn exit_scene(&mut self) {
+		self.emit("exit_scene", ());
+
 		self.id = 0;
 		self.scene = None;
 		
@@ -151,7 +167,79 @@ impl Node {
 		}
 	}
 
+	pub fn ready(&self) {
+		self.emit("ready", ());
+	}
+
 	pub fn as_any(&self) -> &dyn std::any::Any { self }
+
+	// signals (kinda messy :/)
+	pub fn create_signal<Args: 'static>(&mut self, name: &str) {
+		let signal = StaticSignal::<(*const Self, Args)>::new();
+		self.signals.insert(name.to_string(), Box::new(signal));
+	}
+
+	pub fn create_signal_mut<Args: 'static>(&mut self, name: &str) {
+		let signal_mut = StaticSignal::<(*mut Self, Args)>::new();
+		self.signals.insert(name.to_string(), Box::new(signal_mut));
+	}
+
+	pub fn connect<Args: 'static, F: Fn(&(*const Self, Args)) -> () + 'static>(&mut self, name: &str, handler: F) {
+		let signal = self.signals.get_mut(&name.to_string())
+			.expect(format!("No such signal: {}", name).as_str());
+
+		let handler = Box::new(Box::new(handler) as Box<dyn Fn(&(*const Self, Args))>) as Box<dyn Any>;
+		signal.connect_any(handler);
+	}
+
+	pub fn connect_mut<Args: 'static, F: Fn(&(*mut Self, Args)) -> () + 'static>(&mut self, name: &str, handler: F) {
+		let signal = self.signals.get_mut(&name.to_string())
+			.expect(format!("No such signal: {}", name).as_str());
+
+		let handler = Box::new(Box::new(handler) as Box<dyn Fn(&(*mut Self, Args))>) as Box<dyn Any>;
+		signal.connect_any(handler);
+	}
+
+	pub fn disconnect<Args: 'static, F: Fn(&(*const Self, Args)) -> () + 'static>(&mut self, name: &str, handler: F) {
+		let signal = self.signals.get_mut(&name.to_string())
+			.expect(format!("No such signal: {}", name).as_str());
+
+		let handler = Box::new(Box::new(handler) as Box<dyn Fn(&(*const Self, Args))>) as Box<dyn Any>;
+		signal.disconnect_any(handler);
+	}
+
+	pub fn disconnect_mut<Args: 'static, F: Fn(&(*mut Self, Args)) -> () + 'static>(&mut self, name: &str, handler: F) {
+		let signal = self.signals.get_mut(&name.to_string())
+			.expect(format!("No such signal: {}", name).as_str());
+
+		let handler = Box::new(Box::new(handler) as Box<dyn Fn(&(*mut Self, Args))>) as Box<dyn Any>;
+		signal.disconnect_any(handler);
+	}
+
+	pub fn emit<Args: 'static>(&self, name: &str, args: Args) {
+		let args = (self as *const Self, args);
+
+		if let Some(signal) = self.signals.get(&name.to_string()) {
+			signal.emit_any(&args);
+		}
+	}
+
+	pub fn emit_mut<Args: 'static>(&mut self, name: &str, args: Args) {
+		let args = (self as *mut Self, args);
+
+		if let Some(signal) = self.signals.get(&name.to_string()) {
+			signal.emit_any(&args);
+		}
+	}
+
+	// pub fn emit_strict<Args: 'static>(&self, name: &str, args: Args) {
+	// 	let args = (self as *const Self, args);
+
+	// 	let signal = self.signals.get(&name.to_string())
+	// 		.expect(format!("No such signal: {}", name).as_str());
+		
+	// 	signal.emit_any(&args);
+	// }
 }
 
 // behaviours are like components but not only store data!!!

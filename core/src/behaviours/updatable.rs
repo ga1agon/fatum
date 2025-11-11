@@ -1,5 +1,5 @@
 use fatum_scene::NodeBehaviour;
-use fatum_signals::SignalDispatcher;
+use fatum_signals::{SignalDispatcher};
 
 pub struct Updatable {
 	pub signal_dispatcher: SignalDispatcher

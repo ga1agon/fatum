@@ -220,7 +220,6 @@ impl SceneGraph {
 
 		self.node_added.emit((self, &node));
 		self.nodes.insert(new_id, node);
-
 		new_id
 	}
 

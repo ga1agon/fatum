@@ -3,7 +3,8 @@ use std::{path::{Path, PathBuf}, str::FromStr};
 use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, behaviours::Updatable, components::{Camera2D, Sprite2D, Transform2D}, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
-use fatum_scene::{SceneGraph, NodeBehaviour};
+use fatum_scene::{Node, NodeBehaviour, SceneGraph};
+use fatum_signals::SignalDispatcher;
 use glam::{UVec2, Vec2};
 
 struct SceneGraphApplication<P: GraphicsPlatform + ResourcePlatform> {
@@ -45,15 +46,33 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 			let sprite2 = scene.add_node(sprite2, Some(sprite));
 
 			// updatable
-			let mut updatable = Updatable::new();
-			scene.node_mut(sprite).unwrap()
-				.add_behaviour(Box::new(updatable));
+			{
+				let updatable = Updatable::new();
+				scene.node_mut(sprite2).unwrap()
+					.add_behaviour(Box::new(updatable));
 
-			scene.node_mut(sprite).unwrap()
-				.behaviour_mut::<Updatable>().unwrap()
-				.signal_dispatcher.connect("update", |delta: &std::time::Duration| {
-					log::debug!("Update delta: {:?}", delta);
+				scene.node_mut(sprite2).unwrap()
+					.behaviour_mut::<Updatable>().unwrap()
+					.signal_dispatcher.connect("update", |delta: &std::time::Duration| {
+						log::debug!("Update delta: {:?}", delta);
+					});
+			}
+
+			// signaling
+			{
+				let sprite = scene.node_mut(sprite).unwrap();
+
+				sprite.connect("ready", |args: &(*const Node, ())| {
+					log::info!("sprite2 is ready!");
 				});
+
+				sprite.connect_mut("$update", |args: &(*mut Node, std::time::Duration)| {
+					let node = unsafe { &mut *args.0 };
+
+					node.component_mut::<Transform2D>().unwrap()
+						.rotate(1.0 * args.1.as_secs_f32());
+				});
+			}
 
 			// camera
 			let camera = Camera2D::new_node(UVec2::new(1024, 768), true);

@@ -3,6 +3,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::{Arc, Mutex, RwLock
 use fatum_graphics::{Camera, platform::GraphicsPlatform, render::{RenderObject, RenderQueue}};
 use fatum_resources::ResourcePlatform;
 use fatum_scene::{Node, NodeBehaviour, NodeId, SceneGraph, SharedSceneGraph, iterators::{SceneDfsIterator, ScenePostDfsIterator}};
+use fatum_signals::SignalDispatcher;
 use glam::{Mat4, Quat, Vec3};
 use signals2::Connect2;
 
@@ -74,7 +75,7 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 					}
 				});
 
-				// node ready
+				node.ready();
 			}
 		}
 
@@ -90,6 +91,8 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 						let render_object: RenderObject = model.into();
 						queue.add_object(&render_object, Mat4::IDENTITY);
 					}
+
+					node.ready();
 				}
 			});
 
@@ -135,6 +138,8 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 							updatable.update(delta);
 						}
 
+						node.emit("update", delta.clone());
+
 						if camera_data.is_none() && let Some(c2d) = node.component::<Camera2D>() {
 							if c2d.is_active() {
 								camera_data = Some(c2d.camera_data());
@@ -159,7 +164,7 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 
 							let local_matrix = Mat4::from_scale_rotation_translation(
 								Vec3::new(scale.x, scale.y, 1.0),
-								Quat::from_euler(glam::EulerRot::XYZ, rotation.x, rotation.y, 0.0),
+								Quat::from_euler(glam::EulerRot::XYZ, 0.0, 0.0, rotation),
 								Vec3::new(translation.x, translation.y, 0.0)
 							);
 
@@ -192,13 +197,14 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 
 				if let Ok(mut scene) = scene.try_write() {
 					for node in &nodes {
-						if !matrix_delta.contains_key(node) {
+						let node = scene.node_mut(*node).unwrap();
+						node.emit_mut("$update", delta.clone());
+
+						if !matrix_delta.contains_key(&node.id()) {
 							continue; // didn't change
 						}
 
-						let (local_matrix, global_matrix) = matrix_delta.get(node).unwrap();
-						
-						let node = scene.node_mut(*node).unwrap();
+						let (local_matrix, global_matrix) = matrix_delta.get(&node.id()).unwrap();
 						let t2d = node.component_mut::<Transform2D>().unwrap();
 
 						t2d.local_matrix = *local_matrix;
