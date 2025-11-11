@@ -60,7 +60,7 @@ impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
 		self.outputs.get_mut(&index)
 	}
 
-	pub fn process(&mut self) -> bool {
+	pub fn process(&mut self, _: std::time::Duration) -> bool {
 		for (_, queue) in &mut self.outputs {
 			if !queue.is_active() {
 				continue;

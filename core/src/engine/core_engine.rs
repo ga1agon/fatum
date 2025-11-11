@@ -1,3 +1,4 @@
+use std::time;
 use std::{any::{TypeId, type_name}, cell::{RefCell, RefMut}, path::{Path, PathBuf}, rc::Rc, sync::{Arc, Mutex, MutexGuard}};
 
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderTarget}};
@@ -18,7 +19,10 @@ pub struct CoreEngine<P: GraphicsPlatform + ResourcePlatform, A: Application<P>>
 	resources: Arc<Mutex<ResourceEngine<P>>>,
 	scene: Rc<RefCell<SceneEngine<P>>>,
 
-	running: bool
+	running: bool,
+
+	last_loop: time::Instant,
+	loop_delta: time::Duration,
 }
 
 impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone, A: Application<P> + Default {
@@ -68,7 +72,9 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 			graphics,
 			resources,
 			scene,
-			running: false
+			running: false,
+			last_loop: time::Instant::now(),
+			loop_delta: time::Duration::from_secs(0)
 		}
 	}
 
@@ -89,9 +95,15 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 		self.running = true;
 
 		while self.running {
-			self.scene_engine().process();
-			
-			if !self.graphics_engine().process() {
+			let now = time::Instant::now();
+			let delta = now - self.last_loop;
+
+			self.loop_delta = delta;
+			self.last_loop = now;
+
+			self.scene_engine().process(delta.clone());
+
+			if !self.graphics_engine().process(delta.clone()) {
 				self.running = false;
 			}
 		}

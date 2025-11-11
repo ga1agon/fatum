@@ -6,7 +6,7 @@ use fatum_scene::{Node, NodeBehaviour, NodeId, SceneGraph, SharedSceneGraph, ite
 use glam::{Mat4, Quat, Vec3};
 use signals2::Connect2;
 
-use crate::{Application, CoreEngine, GraphicsEngine, components::{Camera2D, Model, Transform, Transform2D, Transform3D}};
+use crate::{Application, CoreEngine, GraphicsEngine, behaviours::Updatable, components::{Camera2D, Model, Transform, Transform2D, Transform3D}};
 
 pub struct SceneEngine<P: GraphicsPlatform> {
 	graphics: Rc<RefCell<GraphicsEngine<P>>>,
@@ -111,7 +111,7 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 		Some(true)
 	}
 
-	pub fn process(&mut self) -> bool {
+	pub fn process(&mut self, delta: std::time::Duration) -> bool {
 		for (output, scene) in &self.scenes {
 			if let Some(queue) = self.graphics.borrow_mut().get_output(*output) {
 				let nodes: Vec<u32> = SceneDfsIterator::new(scene.clone(), Default::default())
@@ -129,6 +129,10 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 
 						if node.id() == Default::default() {
 							continue; // ignore root
+						}
+
+						if let Some(updatable) = node.behaviour::<Updatable>() {
+							updatable.update(delta);
 						}
 
 						if camera_data.is_none() && let Some(c2d) = node.component::<Camera2D>() {

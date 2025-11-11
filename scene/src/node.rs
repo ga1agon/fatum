@@ -100,7 +100,7 @@ impl Node {
 		false
 	}
 
-	pub fn behaviour<T: NodeComponent>(&self) -> Option<&T> {
+	pub fn behaviour<T: NodeBehaviour>(&self) -> Option<&T> {
 		for behaviour in &self.behaviours {
 			let behaviour_any = behaviour.as_any();
 
@@ -112,7 +112,7 @@ impl Node {
 		None
 	}
 
-	pub fn behaviour_mut<T: NodeComponent>(&mut self) -> Option<&mut T> {
+	pub fn behaviour_mut<T: NodeBehaviour>(&mut self) -> Option<&mut T> {
 		for behaviour in &mut self.behaviours {
 			let behaviour_any = behaviour.as_any_mut();
 

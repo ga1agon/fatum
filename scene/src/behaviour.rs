@@ -1,6 +1,6 @@
 use fatum_signals::SignalDispatcher;
 
-pub trait NodeBehaviour {
+pub trait NodeBehaviour: 'static {
 	fn setup(&mut self);
 	fn dispatcher(&self) -> &SignalDispatcher;
 

@@ -52,8 +52,8 @@ impl OpenGlRenderQueue {
 			pipeline: None,
 			targets: HashMap::new(),
 			commands: HashMap::new(),
-			last_process: std::time::Instant::now(),
-			process_delta: std::time::Duration::from_secs(0),
+			last_process: time::Instant::now(),
+			process_delta: time::Duration::from_secs(0),
 			objects: HashMap::new()
 		}
 	}

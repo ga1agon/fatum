@@ -1,9 +1,9 @@
 use std::{path::{Path, PathBuf}, str::FromStr};
 
-use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::{Camera2D, Sprite2D, Transform2D}, resources::{ResText, ResTexture2D}};
+use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, behaviours::Updatable, components::{Camera2D, Sprite2D, Transform2D}, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
-use fatum_scene::SceneGraph;
+use fatum_scene::{SceneGraph, NodeBehaviour};
 use glam::{UVec2, Vec2};
 
 struct SceneGraphApplication<P: GraphicsPlatform + ResourcePlatform> {
@@ -26,6 +26,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 		{
 			let mut scene = scene.write().unwrap();
 
+			// 1st sprite
 			let mut sprite = Sprite2D::new_node(texture.clone());
 			sprite.component_mut::<Transform2D>().unwrap()
 				.set_translation(Vec2::new(100.0, 60.0)); // sprites have a pivot at their center
@@ -34,14 +35,27 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 			
 			let sprite = scene.add_node(sprite.into(), None);
 
+			// 2nd sprite (parent of 1st)
 			let mut sprite2 = Sprite2D::new_node(texture.clone());
 			sprite2.component_mut::<Transform2D>().unwrap()
 				.set_translation(Vec2::new(1024.0 / 2.0, 768.0 / 2.0)); // this won't be in the window's center, because it's a parent of sprite
 			sprite2.component_mut::<Transform2D>().unwrap()
 				.set_scale(Vec2::new(2.0, 3.0));
 
-			scene.add_node(sprite2, Some(sprite));
+			let sprite2 = scene.add_node(sprite2, Some(sprite));
 
+			// updatable
+			let mut updatable = Updatable::new();
+			scene.node_mut(sprite).unwrap()
+				.add_behaviour(Box::new(updatable));
+
+			scene.node_mut(sprite).unwrap()
+				.behaviour_mut::<Updatable>().unwrap()
+				.signal_dispatcher.connect("update", |delta: &std::time::Duration| {
+					log::debug!("Update delta: {:?}", delta);
+				});
+
+			// camera
 			let camera = Camera2D::new_node(UVec2::new(1024, 768), true);
 			scene.add_node(camera.into(), None);
 		}
