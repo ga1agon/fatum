@@ -3,11 +3,11 @@ use std::{cell::{LazyCell, OnceCell, RefCell}, rc::Rc, sync::{Arc, Mutex}};
 use fatum_graphics::{Color, Material, Mesh, Model, Vertex, render::RenderObject, texture::Texture2D};
 use fatum_macros::node_impl_new;
 use fatum_resources::ResourceRef;
-use fatum_scene::{Node, NodeBehaviour, NodeComponent, NodeId, SceneGraph, SharedSceneGraph};
+use fatum_scene::{Node, NodeComponent, NodeId, SceneGraph, SharedSceneGraph};
 use glam::{Vec2, Vec3};
 use lazy_static::lazy_static;
 use static_init::dynamic;
-use crate::{components::{self, Transform2D}, nodes::Node2D, resources::ResTexture2D};
+use crate::{components::{self, Transform2D}, resources::ResTexture2D};
 
 #[dynamic]
 static UNIT_QUAD: Model = Model {
@@ -90,28 +90,3 @@ impl Sprite2D {
 		}
 	}
 }
-
-// impl NodeComponent for Sprite2D {
-// 	fn enter_scene(&mut self, owner: NodeId, scene: Arc<Mutex<SceneGraph>>) {
-// 		if let Ok(mut scene) = scene.clone().lock() {
-// 			let owner = scene.node_mut(owner).unwrap();
-// 			owner.add_component(Box::new(components::Model::new(self.model.clone())));
-// 		}
-
-// 		self.owner = owner;
-// 		self.scene = Some(scene);
-// 	}
-
-// 	fn exit_scene(&mut self) {
-// 		self.owner = Default::default();
-// 		self.scene = Default::default();
-// 	}
-
-// 	fn as_any(&self) -> &dyn std::any::Any {
-// 		self
-// 	}
-
-// 	fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-// 		self
-// 	}
-// }

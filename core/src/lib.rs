@@ -1,7 +1,6 @@
 #![feature(thread_local)]
 pub mod resources;
 pub mod build;
-pub mod nodes;
 pub mod components;
 
 mod app;

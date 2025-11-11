@@ -70,23 +70,3 @@ impl Iterator for ScenePostDfsIterator {
 		None
 	}
 }
-
-// pub struct SceneRBfsIterator {
-// 	pub(crate) nodes: Vec<NodeId>,
-// 	pub(crate) index: usize
-// }
-
-// impl Iterator for SceneRBfsIterator {
-// 	type Item = NodeId;
-
-// 	fn next(&mut self) -> Option<Self::Item> {
-// 		if self.index < self.nodes.len() {
-// 			let node = self.nodes[self.index];
-// 			self.index += 1;
-			
-// 			return Some(node);
-// 		}
-
-// 		None
-// 	}
-// }

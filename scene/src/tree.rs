@@ -1,18 +1,3 @@
-use serde::{Deserialize, Serialize};
-
-use crate::{Node, SceneGraph};
-
-// #[derive(Serialize, Deserialize)]
-// pub struct NodeTree {
-	
-// }
-
-// impl NodeTree {
-// 	pub fn instantiate_to_node(&self) -> Node {
-// 		todo!()
-// 	}
-
-// 	pub fn instantiate_to_scene(&self) -> SceneGraph {
-// 		todo!()
-// 	}
-// }
+// TODO
+// A scene graph stores a node hierarchy in a graph-like fashion at runtime
+// A node tree stores an actual node tree without any behaviour (only data) and can be imported/exported to/from a scene graph

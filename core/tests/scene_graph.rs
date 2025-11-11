@@ -3,7 +3,7 @@ use std::{path::{Path, PathBuf}, str::FromStr};
 use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::{Camera2D, Sprite2D, Transform2D}, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
-use fatum_scene::{Node, NodeBehaviour, SceneGraph};
+use fatum_scene::{Node, SceneGraph};
 use fatum_signals::SignalDispatcher;
 use glam::{UVec2, Vec2};
 

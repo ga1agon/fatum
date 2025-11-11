@@ -123,36 +123,3 @@ impl<Args> Signal for StaticSignal<Args> where Args: 'static {
 		self.captures.clear();
 	}
 }
-
-// pub struct DynamicSignal {
-// 	handlers: Vec<Box<dyn Fn(&dyn Any) -> ()>>
-// }
-
-// impl DynamicSignal {
-// 	pub fn new() -> Self {
-// 		Self {
-// 			handlers: Vec::new()
-// 		}
-// 	}
-
-// 	pub fn connect<F: Fn(&dyn Any) -> ()>(&mut self, handler: F) {
-// 		self.handlers.push(Box::new(handler));
-// 	}
-
-// 	fn emit(&self, args: &dyn Any) {
-// 		for handler in &self.handlers {
-// 			handler.as_ref().call((args,));
-// 		}
-// 	}
-// }
-
-// impl<Args> Signal for StaticSignal<Args> where Args: Copy + 'static {
-// 	fn emit(&self, args: &dyn Any) {
-// 		let args = args.downcast_ref::<Args>()
-// 			.expect("Signal called with the wrong arguments");
-
-// 		for handler in &self.handlers {
-// 			handler.as_ref().call((args,));
-// 		}
-// 	}
-// }

@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::{Arc, Mutex, RwLock
 
 use fatum_graphics::{Camera, platform::GraphicsPlatform, render::{RenderObject, RenderQueue}};
 use fatum_resources::ResourcePlatform;
-use fatum_scene::{Node, NodeBehaviour, NodeId, SceneGraph, SharedSceneGraph, iterators::{SceneDfsIterator, ScenePostDfsIterator}};
+use fatum_scene::{Node, NodeId, SceneGraph, SharedSceneGraph, iterators::{SceneDfsIterator, ScenePostDfsIterator}};
 use fatum_signals::SignalDispatcher;
 use glam::{Mat4, Quat, Vec3, Vec4};
 use signals2::Connect2;

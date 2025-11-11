@@ -2,7 +2,7 @@ use std::{collections::{HashMap, VecDeque}, fmt::Debug, rc::Rc, sync::{Arc, Mute
 
 use fatum_signals::StaticSignal;
 
-use crate::{Node, NodeBehaviour, NodeComponent, NodeId, iterators::{SceneDfsIterator, ScenePostDfsIterator}};
+use crate::{Node, NodeComponent, NodeId, iterators::{SceneDfsIterator, ScenePostDfsIterator}};
 
 pub type SharedSceneGraph = Arc<RwLock<SceneGraph>>;
 
@@ -10,8 +10,6 @@ pub struct SceneGraph {
 	this: Option<SharedSceneGraph>,
 
 	nodes: HashMap<NodeId, Node>,
-	// components: HashMap<NodeId, Vec<*const dyn NodeComponent>>,
-	// behaviours: HashMap<NodeId, Vec<*const dyn NodeBehaviour>>, // i <3 pointers
 	child_parent: HashMap<NodeId, NodeId>,
 	parent_children: HashMap<NodeId, Vec<NodeId>>,
 
@@ -32,8 +30,6 @@ impl SceneGraph {
 			nodes: HashMap::from([
 				(root.id(), root)
 			]),
-			// components: HashMap::new(),
-			// behaviours: HashMap::new(),
 			child_parent: HashMap::new(),
 			parent_children: HashMap::new(),
 			root: 0,
@@ -85,34 +81,6 @@ impl SceneGraph {
 		None
 	}
 
-	// pub fn behaviour(&self, id: u32) -> Option<&dyn NodeBehaviour> {
-	// 	self.nodes.get(&id).map(|n| n as &dyn NodeBehaviour)
-	// }
-
-	// pub fn components(&self, id: NodeId) -> Option<&Vec<*const dyn NodeComponent>> {
-	// 	self.components.get(&id)
-	// }
-
-	// pub fn behaviours(&self, id: NodeId) -> Option<&Vec<*const dyn NodeBehaviour>> {
-	// 	self.behaviours.get(&id)
-	// 		// .map_or_else(|| {
-	// 		// 	Vec::new() as Vec<Box<dyn NodeBehaviour>>
-	// 		// }, |v| {
-	// 		// 	v
-	// 		// })
-	// }
-
-	// pub fn add_behaviour<B: NodeBehaviour + 'static>(&mut self, id: NodeId) {
-	// 	let behaviour = node.as_any().downcast_ref::<B>()
-	// 		.expect(format!("Node {} does not implement behaviour {}", std::any::type_name::<N>(), std::any::type_name::<B>()).as_str());
-
-	// 	if let Some(behaviours) = self.behaviours.get_mut(&id) {
-	// 		behaviours.push(behaviour); // this can very easily go out of scope and kill itself no?
-	// 	} else {
-	// 		self.behaviours.insert(id, vec![behaviour]);
-	// 	}
-	// }
-
 	pub fn parent(&self, child: NodeId) -> NodeId {
 		*self.child_parent.get(&child)
 			.expect("How did we end up with a lost little lamb with no parent?")
@@ -143,44 +111,6 @@ impl SceneGraph {
 
 		None
 	}
-
-	// pub fn traverse_children_dfs(&self, parent: NodeId) -> SceneDfsIterator {
-	// 	SceneDfsIterator {
-	// 		scene: self.this.clone().unwrap(),
-	// 		stack: vec![parent]
-	// 	}
-	// }
-
-	// pub fn traverse_children_dfs_post(&self, parent: NodeId) -> ScenePostDfsIterator {
-	// 	ScenePostDfsIterator {
-	// 		scene: self.this.clone().unwrap(),
-	// 		stack: vec![(parent, false)]
-	// 	}
-	// }
-
-	// pub fn traverse_children_rbfs(&self, parent: NodeId) -> SceneRBfsIterator {
-	// 	let mut depths = HashMap::<NodeId, usize>::new();
-	// 	let mut queue = VecDeque::new();
-	// 	depths.insert(parent, 0);
-	// 	queue.push_back(parent);
-
-	// 	while let Some(node) = queue.pop_front() {
-	// 		let children = self.children(node);
-
-	// 		for child in children {
-	// 			depths.insert(child, depths[&node] + 1);
-	// 			queue.push_back(child);
-	// 		}
-	// 	}
-
-	// 	let mut nodes: Vec<u32> = depths.keys().cloned().collect();
-	// 	nodes.sort_by(|a, b| depths[b].cmp(&depths[a]));
-		
-	// 	SceneRBfsIterator {
-	// 		nodes,
-	// 		index: 0
-	// 	}
-	// }
 
 	pub fn add_node(&mut self, mut node: Node, parent: Option<NodeId>) -> NodeId {
 		let new_id = self.nodes.len() as NodeId;
