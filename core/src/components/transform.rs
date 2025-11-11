@@ -169,14 +169,14 @@ pub struct Transform2D {
 	pub(crate) global_matrix: Mat4,
 
 	translation: Vec2,
-	rotation: Vec2,
+	rotation: f32,
 	scale: Vec2,
 
 	pub(crate) dirty: bool
 }
 
 impl Transform2D {
-	pub fn new(translation: Vec2, rotation: Vec2, scale: Vec2) -> Self {
+	pub fn new(translation: Vec2, rotation: f32, scale: Vec2) -> Self {
 		Self {
 			owner: 0,
 			scene: None,
@@ -196,7 +196,7 @@ impl Transform2D {
 			local_matrix: Mat4::IDENTITY,
 			global_matrix: Mat4::IDENTITY,
 			translation,
-			rotation: Vec2::ZERO,
+			rotation: 0.0,
 			scale: Vec2::ONE,
 			dirty: true
 		}
@@ -207,7 +207,7 @@ impl Transform2D {
 		self.dirty = true;
 	}
 
-	pub fn rotate(&mut self, rotation: Vec2) {
+	pub fn rotate(&mut self, rotation: f32) {
 		self.rotation += rotation;
 		self.dirty = true;
 	}
@@ -219,8 +219,8 @@ impl Transform2D {
 	pub fn translation(&self) -> Vec2 { self.translation }
 	pub fn set_translation(&mut self, translation: Vec2) { self.translation = translation; self.dirty = true; }
 
-	pub fn rotation(&self) -> Vec2 { self.rotation }
-	pub fn set_rotation(&mut self, rotation: Vec2) { self.rotation = rotation; self.dirty = true; }
+	pub fn rotation(&self) -> f32 { self.rotation }
+	pub fn set_rotation(&mut self, rotation: f32) { self.rotation = rotation; self.dirty = true; }
 
 	pub fn scale(&self) -> Vec2 { self.scale }
 	pub fn set_scale(&mut self, scale: Vec2) { self.scale = scale; self.dirty = true; }
@@ -244,7 +244,7 @@ impl Default for Transform2D {
 			local_matrix: Mat4::IDENTITY,
 			global_matrix: Mat4::IDENTITY,
 			translation: Vec2::ZERO,
-			rotation: Vec2::ZERO,
+			rotation: 0.0,
 			scale: Vec2::ONE,
 			dirty: true
 		}

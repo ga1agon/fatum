@@ -37,9 +37,10 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 			let sprite = scene.add_node(sprite.into(), None);
 
 			// 2nd sprite (parent of 1st)
+			// TODO how to fix transform being scaled up by the parent's scale?? is it a 2D only issue?
 			let mut sprite2 = Sprite2D::new_node(texture.clone());
 			sprite2.component_mut::<Transform2D>().unwrap()
-				.set_translation(Vec2::new(1024.0 / 2.0, 768.0 / 2.0)); // this won't be in the window's center, because it's a parent of sprite
+				.set_translation(Vec2::new(4.0, 3.0)); // this won't be in the window's center, because it's a parent of sprite
 			sprite2.component_mut::<Transform2D>().unwrap()
 				.set_scale(Vec2::new(2.0, 3.0));
 
@@ -70,7 +71,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 					let node = unsafe { &mut *args.0 };
 
 					node.component_mut::<Transform2D>().unwrap()
-						.rotate(1.0 * args.1.as_secs_f32());
+						.rotate(2.0 * args.1.as_secs_f32());
 				});
 			}
 

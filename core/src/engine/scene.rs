@@ -4,7 +4,7 @@ use fatum_graphics::{Camera, platform::GraphicsPlatform, render::{RenderObject, 
 use fatum_resources::ResourcePlatform;
 use fatum_scene::{Node, NodeBehaviour, NodeId, SceneGraph, SharedSceneGraph, iterators::{SceneDfsIterator, ScenePostDfsIterator}};
 use fatum_signals::SignalDispatcher;
-use glam::{Mat4, Quat, Vec3};
+use glam::{Mat4, Quat, Vec3, Vec4};
 use signals2::Connect2;
 
 use crate::{Application, CoreEngine, GraphicsEngine, behaviours::Updatable, components::{Camera2D, Model, Transform, Transform2D, Transform3D}};
@@ -162,11 +162,68 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 							let rotation = t2d.rotation();
 							let translation = t2d.translation();
 
-							let local_matrix = Mat4::from_scale_rotation_translation(
-								Vec3::new(scale.x, scale.y, 1.0),
-								Quat::from_euler(glam::EulerRot::XYZ, 0.0, 0.0, rotation),
-								Vec3::new(translation.x, translation.y, 0.0)
-							);
+							let scale = Vec3::new(scale.x, scale.y, 1.0);
+							let rotation = Quat::from_euler(glam::EulerRot::XYZ, 0.0, 0.0, rotation);
+							let translation = Vec3::new(translation.x, translation.y, 0.0);
+
+							let local_matrix: Mat4;
+
+							{
+								// let s = Mat4::from_cols(
+								// 	Vec4::new(scale.x, 0.0, 0.0, 0.0), 
+								// 	Vec4::new(0.0, scale.y, 0.0, 0.0), 
+								// 	Vec4::new(0.0, 0.0, scale.z, 0.0), 
+								// 	Vec4::W
+								// );
+
+								let s = Mat4::from_scale(scale);
+
+								// let xx = rotation.x * rotation.x;
+								// let yy = rotation.y * rotation.y;
+								// let zz = rotation.z * rotation.z;
+
+								// let xy = rotation.x * rotation.y;
+								// let wz = rotation.w * rotation.z;
+								// let xz = rotation.x * rotation.z;
+								// let wy = rotation.w * rotation.y;
+								// let yz = rotation.y * rotation.z;
+								// let wx = rotation.w * rotation.x;
+
+								// let r = Mat4::from_cols(
+								// 	Vec4::new(
+								// 		1.0 - 2.0 * (yy + zz),
+								// 		2.0 * (xy + wz),
+								// 		2.0 * (xz - wy),
+								// 		0.0
+								// 	),
+								// 	Vec4::new(
+								// 		2.0 * (xy - wz),
+								// 		1.0 - 2.0 * (zz + xx),
+								// 		2.0 * (yz + wx),
+								// 		0.0
+								// 	),
+								// 	Vec4::new(
+								// 		2.0 * (xz + wy),
+								// 		2.0 * (yz - wx),
+								// 		1.0 - 2.0 * (yy + xx),
+								// 		0.0
+								// 	),
+								// 	Vec4::W
+								// );
+
+								let r = Mat4::from_quat(rotation);
+
+								// let t = Mat4::from_cols(
+								// 	Vec4::X,
+								// 	Vec4::Y,
+								// 	Vec4::Z,
+								// 	Vec4::new(translation.x, translation.y, translation.z, 1.0)
+								// );
+
+								let t = Mat4::from_translation(translation);
+
+								local_matrix = (t * r * s);
+							}
 
 							let parent_global_matrix: Mat4;
 
@@ -183,7 +240,12 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 								parent_global_matrix = Mat4::IDENTITY;
 							}
 
-							let global_matrix = local_matrix * parent_global_matrix;
+							//log::debug!("Parent global matrix {}", parent_global_matrix);
+							//log::debug!("Local matrix {}", local_matrix);
+
+							let global_matrix = parent_global_matrix * local_matrix;
+
+							//log::debug!("Result global matrix {}", global_matrix);
 
 							matrix_delta.insert(node.id(), (local_matrix, global_matrix));
 						}
