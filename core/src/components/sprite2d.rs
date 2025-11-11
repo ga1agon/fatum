@@ -7,7 +7,7 @@ use fatum_scene::{Node, NodeBehaviour, NodeComponent, NodeId, SceneGraph, Shared
 use glam::{Vec2, Vec3};
 use lazy_static::lazy_static;
 use static_init::dynamic;
-use crate::{behaviours::{ObjectRenderable, Renderable}, components::{self, Transform2D}, nodes::Node2D, resources::ResTexture2D};
+use crate::{components::{self, Transform2D}, nodes::Node2D, resources::ResTexture2D};
 
 #[dynamic]
 static UNIT_QUAD: Model = Model {

@@ -12,9 +12,6 @@ pub use tree::*;
 mod component;
 pub use component::*;
 
-mod behaviour;
-pub use behaviour::*;
-
 mod base;
 pub use base::*;
 

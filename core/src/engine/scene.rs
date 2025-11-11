@@ -7,7 +7,7 @@ use fatum_signals::SignalDispatcher;
 use glam::{Mat4, Quat, Vec3, Vec4};
 use signals2::Connect2;
 
-use crate::{Application, CoreEngine, GraphicsEngine, behaviours::Updatable, components::{Camera2D, Model, Transform, Transform2D, Transform3D}};
+use crate::{Application, CoreEngine, GraphicsEngine, components::{Camera2D, Model, Transform, Transform2D, Transform3D}};
 
 pub struct SceneEngine<P: GraphicsPlatform> {
 	graphics: Rc<RefCell<GraphicsEngine<P>>>,
@@ -132,10 +132,6 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 
 						if node.id() == Default::default() {
 							continue; // ignore root
-						}
-
-						if let Some(updatable) = node.behaviour::<Updatable>() {
-							updatable.update(delta);
 						}
 
 						node.emit("update", delta.clone());

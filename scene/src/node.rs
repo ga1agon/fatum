@@ -13,7 +13,6 @@ pub struct Node {
 	
 	scene: Option<SharedSceneGraph>,
 	components: Vec<Box<dyn NodeComponent>>,
-	behaviours: Vec<Box<dyn NodeBehaviour>>,
 
 	pub component_added: StaticSignal<(*const Node, *const Box<dyn NodeComponent>)>,
 	pub component_removed: StaticSignal<(*const Node, *const Box<dyn NodeComponent>)>,
@@ -36,7 +35,6 @@ impl Node {
 			name: name.to_string(),
 			scene: None,
 			components: vec![],
-			behaviours: vec![],
 			component_added: StaticSignal::new(),
 			component_removed: StaticSignal::new(),
 			signals: HashMap::new()
@@ -110,36 +108,6 @@ impl Node {
 		}
 
 		false
-	}
-
-	pub fn behaviour<T: NodeBehaviour>(&self) -> Option<&T> {
-		for behaviour in &self.behaviours {
-			let behaviour_any = behaviour.as_any();
-
-			if behaviour_any.is::<T>() {
-				return behaviour_any.downcast_ref();
-			}
-		}
-
-		None
-	}
-
-	pub fn behaviour_mut<T: NodeBehaviour>(&mut self) -> Option<&mut T> {
-		for behaviour in &mut self.behaviours {
-			let behaviour_any = behaviour.as_any_mut();
-
-			if behaviour_any.is::<T>() {
-				return behaviour_any.downcast_mut();
-			}
-		}
-
-		None
-	}
-
-	pub fn behaviours(&self) -> &Vec<Box<dyn NodeBehaviour>> { &self.behaviours }
-	pub fn add_behaviour(&mut self, mut behaviour: Box<dyn NodeBehaviour>) {
-		behaviour.setup();
-		self.behaviours.push(behaviour);
 	}
 
 	pub fn enter_scene(&mut self, id: NodeId, scene: SharedSceneGraph) {

@@ -1,6 +1,6 @@
 use std::{path::{Path, PathBuf}, str::FromStr};
 
-use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, behaviours::Updatable, components::{Camera2D, Sprite2D, Transform2D}, resources::{ResText, ResTexture2D}};
+use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::{Camera2D, Sprite2D, Transform2D}, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
 use fatum_scene::{Node, NodeBehaviour, SceneGraph};
@@ -45,19 +45,6 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 				.set_scale(Vec2::new(2.0, 3.0));
 
 			let sprite2 = scene.add_node(sprite2, Some(sprite));
-
-			// updatable
-			{
-				let updatable = Updatable::new();
-				scene.node_mut(sprite2).unwrap()
-					.add_behaviour(Box::new(updatable));
-
-				scene.node_mut(sprite2).unwrap()
-					.behaviour_mut::<Updatable>().unwrap()
-					.signal_dispatcher.connect("update", |delta: &std::time::Duration| {
-						log::debug!("Update delta: {:?}", delta);
-					});
-			}
 
 			// signaling
 			{
