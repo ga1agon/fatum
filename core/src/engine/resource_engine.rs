@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use fatum_resources::{ResourcePlatform, Resources};
 
@@ -7,8 +7,8 @@ pub struct ResourceEngine<P: ResourcePlatform> {
 }
 
 impl<P> ResourceEngine<P> where P: ResourcePlatform + Clone {
-	pub fn new(platform: &P, base_directory: &PathBuf) -> Self {
-		let resources = Resources::new(platform.clone().into(), base_directory.join("assets"));
+	pub fn new(platform: Rc<P>, base_directory: &PathBuf) -> Self {
+		let resources = Resources::new(platform.clone(), base_directory.join("assets"));
 		log::info!("Created resource engine ({})", resources.assets_directory().display());
 
 		Self {

@@ -81,6 +81,6 @@ impl Texture2D for OglTexture2D {
 		}
 	}
 
-	fn handle(&self) -> u64 { self.handle.0.get() as u64 }
+	fn handle(&self) -> u32 { self.handle.0.get() }
 	fn options(&self) -> texture::Options { self.options }
 }

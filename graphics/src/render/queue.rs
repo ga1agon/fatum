@@ -1,5 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
+use glam::Mat4;
+
 use crate::{Camera, Model, Rf, render::{RenderObject, pipeline::RenderPipeline, target::RenderTarget}};
 
 pub trait RenderQueue {
@@ -18,6 +20,8 @@ pub trait RenderQueue {
 	fn add_command(&mut self, command: fn(std::time::Duration)) -> usize;
 	fn remove_command(&mut self, index: usize) -> bool;
 
-	fn add_object(&mut self, object: Rc<RenderObject>) -> bool;
+	fn add_object(&mut self, object: &RenderObject, matrix: Mat4) -> bool;
+	fn set_object_matrix(&mut self, object: &RenderObject, matrix: Mat4) -> bool;
 	fn remove_object(&mut self, object: &RenderObject) -> bool;
+	fn clear_objects(&mut self);
 }

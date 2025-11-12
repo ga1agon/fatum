@@ -1,0 +1,125 @@
+use std::{any::Any, collections::HashMap, sync::{Arc, RwLock, RwLockReadGuard}};
+
+pub trait Signal {
+	/// This function is DANGEROUS and should be used with CAUTION!!!
+	fn connect_any(&mut self, handler: Box<dyn Any>);
+
+	/// This function is DANGEROUS and should be used with CAUTION!!!
+	fn disconnect_any(&mut self, handler: Box<dyn Any>);
+
+	/// This function is DANGEROUS and should be used with CAUTION!!!
+	fn emit_any(&self, args: &dyn Any);
+
+	fn clear(&mut self);
+}
+
+pub struct StaticSignal<Args: 'static> {
+	handlers: Vec<Box<dyn Fn(&Args) -> ()>>,
+	capture_handlers: Vec<Box<dyn Fn(&Vec<*mut std::ffi::c_void>, &Args) -> ()>>,
+	captures: Vec<Vec<*mut std::ffi::c_void>>
+}
+
+impl<Args> StaticSignal<Args> where Args: 'static {
+	pub fn new() -> Self {
+		Self {
+			handlers: Vec::new(),
+			capture_handlers: Vec::new(),
+			captures: Vec::new()
+		}
+	}
+
+	pub fn connect<F: Fn(&Args) -> () + 'static>(&mut self, handler: F) {
+		self.handlers.push(Box::new(handler));
+	}
+
+	// i don't think i can even explain this one
+	pub fn connect_capture<F: Fn(&Vec<*mut std::ffi::c_void>, &Args) -> () + 'static>(&mut self, capture: Vec<*mut std::ffi::c_void>, handler: F) {
+		self.capture_handlers.push(Box::new(handler));
+		self.captures.push(capture);
+	}
+
+	pub fn disconnect<F: Fn(&Args) -> () + 'static>(&mut self, handler: F) {
+		let mut index: Option<usize> = None;
+
+		for i in 0..self.handlers.len() {
+			let e_handler = &self.handlers[i];
+			// derefdereferencing a &Box<T> into T waowww
+			if (**e_handler).type_id() == handler.type_id() {
+				index = Some(i);
+				break;
+			}
+		}
+
+		if index.is_none() {
+			log::warn!("Not removing handler {:?}: doesn't exist in the current signal", handler.type_id());
+		}
+
+		self.handlers.remove(index.unwrap());
+	}
+
+	pub fn emit(&self, args: Args) {
+		for handler in &self.handlers {
+			(handler.as_ref())(&args);
+		}
+
+		for i in 0..self.capture_handlers.len() {
+			let handler = &self.capture_handlers[i];
+			let capture = &self.captures[i];
+
+			(handler.as_ref())(capture, &args);
+		}
+	}
+}
+
+impl<Args> Signal for StaticSignal<Args> where Args: 'static {
+	fn connect_any(&mut self, handler: Box<dyn Any>) {
+		let handler_type_name = std::any::type_name_of_val(&handler);
+
+		// Box !
+		let handler = *handler.downcast::<Box<dyn Fn(&Args) -> ()>>()
+			.expect(format!(
+				"Cannot connect handler - invalid type ({} required, got {} instead)",
+				std::any::type_name::<Box<dyn Fn(&Args) -> ()>>(),
+				handler_type_name
+			).as_str());
+
+		self.handlers.push(handler);
+	}
+
+	fn disconnect_any(&mut self, handler: Box<dyn Any>) {
+		let handler = *handler.downcast::<Box<dyn Fn(&Args) -> ()>>()
+			.expect("Cannot disconnect handler - invalid type");
+
+		let mut index: Option<usize> = None;
+
+		for i in 0..self.handlers.len() {
+			let e_handler = &self.handlers[i];
+			// derefdereferencing a &Box<T> into T waowww
+			if (**e_handler).type_id() == (*handler).type_id() {
+				index = Some(i);
+				break;
+			}
+		}
+
+		if index.is_none() {
+			log::warn!("Not removing handler {:?}: doesn't exist in the current signal", handler.type_id());
+		}
+
+		self.handlers.remove(index.unwrap());
+	}
+
+	fn emit_any(&self, args: &dyn Any) {
+		let args = args.downcast_ref::<Args>()
+			.expect("Signal called with invalid arguments");
+		
+		for handler in &self.handlers {
+			handler.as_ref().call((args,));
+		}
+	}
+
+	fn clear(&mut self) {
+		self.handlers.clear();
+		self.capture_handlers.clear();
+		self.captures.clear();
+	}
+}

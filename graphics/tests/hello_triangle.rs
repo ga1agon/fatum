@@ -16,7 +16,7 @@ fn opengl_hello_triangle() {
 	let pipeline = platform.create_pipeline(PipelineKind::Default);
 	queue.set_pipeline(Some(pipeline));
 
-	let triangle = Model {
+	let triangle = Rc::new(Box::new(Model {
 		meshes: vec![
 			Mesh {
 				vertices: vec![
@@ -30,15 +30,15 @@ fn opengl_hello_triangle() {
 				material: Material::with_color(Color::from_rgb_u8(255, 100, 150))
 			}
 		]
-	};
+	}));
 
 	let translation = Vec3::new(0.0, 0.0, 0.0);
 	let rotation = Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0);
 	let scale = Vec3::new(1.0, 1.0, 1.0);
 	let matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
 
-	let triangle_object = Rc::new(RenderObject::new(triangle, matrix));
-	queue.add_object(triangle_object);
+	let triangle_object = RenderObject::new(triangle.clone());
+	queue.add_object(&triangle_object, matrix);
 
 	let camera = Camera2D {
 		position: Vec2::new(-200.0, -50.0),

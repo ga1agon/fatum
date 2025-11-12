@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone, Pod, Zeroable, PartialEq)]
+#[derive(Debug, Copy, Clone, Pod, Zeroable, PartialEq)]
 pub struct Color {
 	pub r: f32,
 	pub g: f32,
@@ -34,5 +34,16 @@ impl Color {
 
 	pub fn from_rgb_f32(r: f32, g: f32, b: f32) -> Self {
 		Self::from_rgba_f32(r, g, b, 1.0)
+	}
+}
+
+impl Default for Color {
+	fn default() -> Self {
+		Self {
+			r: 1.0,
+			g: 1.0,
+			b: 1.0,
+			a: 1.0
+		}
 	}
 }

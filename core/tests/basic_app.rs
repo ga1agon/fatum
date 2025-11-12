@@ -17,7 +17,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for BasicApp
 
 	fn setup(&mut self, engine: &mut CoreEngine<P, Self>) where Self: Sized {
 		engine.graphics_engine().create_output(0, PipelineKind::Default, OutputKind::Window);
-		let text = engine.resources().load_by_path::<ResText>("hello.txt", false).unwrap();
+		let text = engine.resource_engine().get().load_by_path::<ResText>("hello.txt", false).unwrap();
 		log::info!("Text resource contents: {}", text.borrow().get());
 	}
 }
