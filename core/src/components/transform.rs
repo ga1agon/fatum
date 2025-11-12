@@ -3,13 +3,16 @@ use glam::{EulerRot, Mat4, Quat, Vec2, Vec3, Vec4};
 use std::{fmt::Debug, sync::{Arc, Mutex}};
 
 pub trait Transform {
+	fn calculate_matrix(&self) -> Mat4;
+
 	fn global_matrix(&self) -> Mat4;
-	//fn set_global_matrix(&mut self, matrix: Mat4);
+	fn set_global_matrix(&mut self, matrix: Mat4);
 
 	fn local_matrix(&self) -> Mat4;
-	//fn set_local_matrix(&mut self, matrix: Mat4);
+	fn set_local_matrix(&mut self, matrix: Mat4);
 
 	fn dirty(&self) -> bool;
+	fn set_dirty(&mut self, dirty: bool);
 }
 
 #[derive(Clone, NodeComponent)]
@@ -78,7 +81,7 @@ impl Transform3D {
 	}
 
 	pub fn rotate_euler(&mut self, order: EulerRot, rotation: Vec3) {
-		self.rotation += Quat::from_euler(order, rotation.x, rotation.y, rotation.z);
+		self.rotation *= Quat::from_euler(order, rotation.x, rotation.y, rotation.z);
 		self.dirty = true;
 	}
 
@@ -122,13 +125,22 @@ impl Transform3D {
 }
 
 impl Transform for Transform3D {
+	fn calculate_matrix(&self) -> Mat4 {
+		let s = Mat4::from_scale(self.scale);
+		let r = Mat4::from_quat(self.rotation);
+		let t = Mat4::from_translation(self.translation);
+
+		t * r * s
+	}
+
 	fn global_matrix(&self) -> Mat4 { self.global_matrix }
-	//fn set_global_matrix(&mut self, matrix: Mat4) { self.global_matrix = matrix }
+	fn set_global_matrix(&mut self, matrix: Mat4) { self.global_matrix = matrix }
 
 	fn local_matrix(&self) -> Mat4 { self.local_matrix }
-	//fn set_local_matrix(&mut self, matrix: Mat4) { self.local_matrix = matrix }
+	fn set_local_matrix(&mut self, matrix: Mat4) { self.local_matrix = matrix }
 
 	fn dirty(&self) -> bool { self.dirty }
+	fn set_dirty(&mut self, dirty: bool) { self.dirty = dirty }
 }
 
 impl Default for Transform3D {
@@ -227,13 +239,26 @@ impl Transform2D {
 }
 
 impl Transform for Transform2D {
+	fn calculate_matrix(&self) -> Mat4 {
+		let scale = Vec3::new(self.scale.x, self.scale.y, 1.0);
+		let rotation = Quat::from_euler(glam::EulerRot::XYZ, 0.0, 0.0, self.rotation);
+		let translation = Vec3::new(self.translation.x, self.translation.y, 0.0);
+
+		let s = Mat4::from_scale(scale);
+		let r = Mat4::from_quat(rotation);
+		let t = Mat4::from_translation(translation);
+
+		t * r * s
+	}
+
 	fn global_matrix(&self) -> Mat4 { self.global_matrix }
-	//fn set_global_matrix(&mut self, matrix: Mat4) { self.global_matrix = matrix }
+	fn set_global_matrix(&mut self, matrix: Mat4) { self.global_matrix = matrix }
 
 	fn local_matrix(&self) -> Mat4 { self.local_matrix }
-	//fn set_local_matrix(&mut self, matrix: Mat4) { self.local_matrix = matrix }
+	fn set_local_matrix(&mut self, matrix: Mat4) { self.local_matrix = matrix }
 
 	fn dirty(&self) -> bool { self.dirty }
+	fn set_dirty(&mut self, dirty: bool) { self.dirty = dirty }
 }
 
 impl Default for Transform2D {

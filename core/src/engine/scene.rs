@@ -7,7 +7,7 @@ use fatum_signals::SignalDispatcher;
 use glam::{Mat4, Quat, Vec3, Vec4};
 use signals2::Connect2;
 
-use crate::{Application, CoreEngine, GraphicsEngine, components::{Camera2D, Model, Transform, Transform2D, Transform3D}};
+use crate::{Application, CoreEngine, GraphicsEngine, components::{Camera2D, Camera3D, Model, Transform, Transform2D, Transform3D}};
 
 pub struct SceneEngine<P: GraphicsPlatform> {
 	graphics: Rc<RefCell<GraphicsEngine<P>>>,
@@ -124,8 +124,6 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 				let mut matrix_delta: HashMap<NodeId, (Mat4, Mat4)> = HashMap::new();
 
 				if let Ok(scene) = scene.try_read() {
-					let mut prev_dirty = false;
-					
 					for node in &nodes {
 						let node = scene.node(*node)
 							.expect("Iterator returned a non-existing node");
@@ -134,119 +132,61 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 							continue; // ignore root
 						}
 
-						node.emit("update", delta.clone());
+						node.emit("update", delta);
 
-						if camera_data.is_none() && let Some(c2d) = node.component::<Camera2D>() {
-							if c2d.is_active() {
-								camera_data = Some(c2d.camera_data());
+						if camera_data.is_none() {
+							if let Some(c2d) = node.component::<Camera2D>() {
+								if c2d.is_active() {
+									camera_data = Some(c2d.into());
+								}
+							} else if let Some(c3d) = node.component::<Camera3D>() {
+								if c3d.is_active() {
+									camera_data = Some(c3d.into());
+								}
 							}
 						}
 
 						let parent = node.parent();
-						let mut dirty = prev_dirty;
+
+						let (parent_dirty, parent_global_matrix) =
+							if let Some((_, global_matrix)) = matrix_delta.get(&parent) {
+								(true, *global_matrix)
+							} else if let Some(parent) = scene.node(parent) {
+								if let Some(parent_t2d) = parent.component::<Transform2D>() {
+									(parent_t2d.dirty, parent_t2d.global_matrix)
+								} else if let Some(parent_t3d) = parent.component::<Transform3D>() {
+									(parent_t3d.dirty, parent_t3d.global_matrix)
+								} else {
+									(false, Mat4::IDENTITY)
+								}
+							} else {
+								(false, Mat4::IDENTITY)
+							};
 
 						if let Some(t2d) = node.component::<Transform2D>() {
 							// node is dirty if it itself is dirty OR its parent is dirty
-							dirty |= t2d.dirty;
+							let dirty = parent_dirty | t2d.dirty;
 
 							if !dirty {
-								//log::debug!("{}: skipping, not dirty", node.id());
 								continue;
 							}
 
-							let scale = t2d.scale();
-							let rotation = t2d.rotation();
-							let translation = t2d.translation();
-
-							let scale = Vec3::new(scale.x, scale.y, 1.0);
-							let rotation = Quat::from_euler(glam::EulerRot::XYZ, 0.0, 0.0, rotation);
-							let translation = Vec3::new(translation.x, translation.y, 0.0);
-
-							let local_matrix: Mat4;
-
-							{
-								// let s = Mat4::from_cols(
-								// 	Vec4::new(scale.x, 0.0, 0.0, 0.0), 
-								// 	Vec4::new(0.0, scale.y, 0.0, 0.0), 
-								// 	Vec4::new(0.0, 0.0, scale.z, 0.0), 
-								// 	Vec4::W
-								// );
-
-								let s = Mat4::from_scale(scale);
-
-								// let xx = rotation.x * rotation.x;
-								// let yy = rotation.y * rotation.y;
-								// let zz = rotation.z * rotation.z;
-
-								// let xy = rotation.x * rotation.y;
-								// let wz = rotation.w * rotation.z;
-								// let xz = rotation.x * rotation.z;
-								// let wy = rotation.w * rotation.y;
-								// let yz = rotation.y * rotation.z;
-								// let wx = rotation.w * rotation.x;
-
-								// let r = Mat4::from_cols(
-								// 	Vec4::new(
-								// 		1.0 - 2.0 * (yy + zz),
-								// 		2.0 * (xy + wz),
-								// 		2.0 * (xz - wy),
-								// 		0.0
-								// 	),
-								// 	Vec4::new(
-								// 		2.0 * (xy - wz),
-								// 		1.0 - 2.0 * (zz + xx),
-								// 		2.0 * (yz + wx),
-								// 		0.0
-								// 	),
-								// 	Vec4::new(
-								// 		2.0 * (xz + wy),
-								// 		2.0 * (yz - wx),
-								// 		1.0 - 2.0 * (yy + xx),
-								// 		0.0
-								// 	),
-								// 	Vec4::W
-								// );
-
-								let r = Mat4::from_quat(rotation);
-
-								// let t = Mat4::from_cols(
-								// 	Vec4::X,
-								// 	Vec4::Y,
-								// 	Vec4::Z,
-								// 	Vec4::new(translation.x, translation.y, translation.z, 1.0)
-								// );
-
-								let t = Mat4::from_translation(translation);
-
-								local_matrix = (t * r * s);
-							}
-
-							let parent_global_matrix: Mat4;
-
-							if let Some((_, global_matrix)) = matrix_delta.get(&parent) {
-								//log::debug!("{}: Using parent global matrix from delta", node.id());
-								parent_global_matrix = *global_matrix;
-							} else if let Some(parent) = scene.node(parent)
-								&& let Some(parent_t2d) = parent.component::<Transform2D>()
-							{
-								//log::debug!("{}: Using parent global matrix from component", node.id());
-								parent_global_matrix = parent_t2d.global_matrix;
-							} else {
-								//log::debug!("{}: Parent global matrix identity", node.id());
-								parent_global_matrix = Mat4::IDENTITY;
-							}
-
-							//log::debug!("Parent global matrix {}", parent_global_matrix);
-							//log::debug!("Local matrix {}", local_matrix);
-
+							let local_matrix = t2d.calculate_matrix();
 							let global_matrix = parent_global_matrix * local_matrix;
 
-							//log::debug!("Result global matrix {}", global_matrix);
+							matrix_delta.insert(node.id(), (local_matrix, global_matrix));
+						} else if let Some(t3d) = node.component::<Transform3D>() {
+							let dirty = parent_dirty | t3d.dirty;
+
+							if !dirty {
+								continue;
+							}
+
+							let local_matrix = t3d.calculate_matrix();
+							let global_matrix = parent_global_matrix * local_matrix;
 
 							matrix_delta.insert(node.id(), (local_matrix, global_matrix));
 						}
-
-						prev_dirty = dirty;
 					}
 				} else {
 					log::warn!("Cannot process scene: could not get a read lock");
@@ -256,18 +196,27 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 				if let Ok(mut scene) = scene.try_write() {
 					for node in &nodes {
 						let node = scene.node_mut(*node).unwrap();
-						node.emit_mut("$update", delta.clone());
+						node.emit_mut("$update", delta);
 
 						if !matrix_delta.contains_key(&node.id()) {
 							continue; // didn't change
 						}
 
 						let (local_matrix, global_matrix) = matrix_delta.get(&node.id()).unwrap();
-						let t2d = node.component_mut::<Transform2D>().unwrap();
+						let t: &mut dyn Transform;
 
-						t2d.local_matrix = *local_matrix;
-						t2d.global_matrix = *global_matrix;
-						t2d.dirty = false;
+						if let Some(t2d) = node.component_mut::<Transform2D>() {
+							t = t2d;
+						} else if let Some(t3d) = node.component_mut::<Transform3D>() {
+							t = t3d;
+						} else {
+							log::warn!("{:?} had its transform processed in the read pass, but now it doesn't have one?", node);
+							continue;
+						}
+						
+						t.set_local_matrix(*local_matrix);
+						t.set_global_matrix(*global_matrix);
+						t.set_dirty(false);
 
 						if let Some(model) = node.component::<Model>() {
 							let render_object: RenderObject = model.into();

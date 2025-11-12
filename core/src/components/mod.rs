@@ -9,3 +9,6 @@ pub use sprite2d::*;
 
 mod camera2d;
 pub use camera2d::*;
+
+mod camera3d;
+pub use camera3d::*;

@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, rc::Rc, sync::{Arc, Mutex, atomic::Ordering}};
+use std::{any::Any, collections::HashMap, fmt::Debug, rc::Rc, sync::{Arc, Mutex, atomic::Ordering}};
 
 use fatum_signals::{Signal, SignalDispatcher, StaticSignal};
 use rand::{Rng, distr::{Alphabetic, SampleString}};
@@ -207,4 +207,13 @@ impl Node {
 		
 	// 	signal.emit_any(&args);
 	// }
+}
+
+impl Debug for Node {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("Node")
+			.field("id", &self.id)
+			.field("name", &self.name)
+			.finish()
+	}
 }

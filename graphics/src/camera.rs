@@ -12,19 +12,22 @@ pub struct Camera {
 	pub aspect_ratio: f32
 }
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Pod, Zeroable, PartialEq)]
 pub struct Camera3D {
 	pub position: Vec3,
 	pub target: Vec3,
+	pub up: Vec3,
 	pub size: UVec2,
 	pub fov: f32,
 }
 
 impl Camera3D {
-	const FRONT: Vec3 = Vec3::Z;
-	const UP: Vec3 = Vec3::Y;
+	pub const FRONT: Vec3 = Vec3::Z;
+	pub const UP: Vec3 = Vec3::Y;
 
-	const Z_NEAR: f32 = 0.01;
-	const Z_FAR: f32 = 1000.0;
+	pub const Z_NEAR: f32 = 0.01;
+	pub const Z_FAR: f32 = 1000.0;
 
 	pub fn create_perspective(&self) -> Camera {
 		let aspect_ratio = self.size.x as f32 / self.size.y as f32;
@@ -41,7 +44,7 @@ impl Camera3D {
 		let view = Mat4::look_at_rh(
 			self.position,
 			self.target,
-			Self::UP
+			self.up
 		);
 
 		let inverse_view = view.inverse();
@@ -57,14 +60,16 @@ impl Camera3D {
 	}
 }
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Pod, Zeroable, PartialEq)]
 pub struct Camera2D {
 	pub position: Vec2,
 	pub size: UVec2,
 }
 
 impl Camera2D {
-	const FRONT: Vec3 = Vec3::Z;
-	const UP: Vec3 = Vec3::Y;
+	pub const FRONT: Vec3 = Vec3::Z;
+	pub const UP: Vec3 = Vec3::Y;
 
 	pub fn create(&self) -> Camera {
 		let projection = Mat4::from_cols(
