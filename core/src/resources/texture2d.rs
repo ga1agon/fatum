@@ -1,4 +1,4 @@
-use std::{any::Any, cell::RefCell, fmt::Debug, fs::File, io::BufReader, path::PathBuf, rc::Rc, sync::atomic::Ordering};
+use std::{any::Any, cell::RefCell, fmt::Debug, fs::File, io::{BufReader, Write}, path::PathBuf, rc::Rc, sync::atomic::Ordering};
 
 use fatum_graphics::{platform::GraphicsPlatform, texture::{self, Texture2D}};
 use fatum_resources::{Resource, ResourceMetadata, ResourcePlatform, error::ResourceError};
@@ -64,8 +64,16 @@ impl<P: GraphicsPlatform + ResourcePlatform + Sized> Resource<P> for ResTexture2
 		})
 	}
 
-	fn save(&self) {
-		todo!()
+	fn save(&self, path: PathBuf, mut metadata: File, _: File) -> Result<(), ResourceError> {
+		let metadata_value = ron::ser::to_string(&self.metadata)
+			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::MetadataError, format!("Failed to serialize resource metadata: {}", e).as_str()))?;
+
+		metadata.write_all(metadata_value.as_bytes())
+			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::IoError, format!("Failed to write to metadata file: {}", e).as_str()))?;
+
+		// we cannot & as such dont save the texture as a file
+
+		Ok(())
 	}
 
 	fn reload(&mut self) {

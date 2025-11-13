@@ -1,4 +1,4 @@
-use std::{io::Read, path::PathBuf, sync::atomic::Ordering};
+use std::{io::{Read, Write}, path::PathBuf, sync::atomic::Ordering};
 
 use fatum_graphics::platform::GraphicsPlatform;
 use fatum_resources::{Resource, ResourceMetadata, ResourcePlatform, error::ResourceError};
@@ -30,6 +30,13 @@ pub struct ResText {
 }
 
 impl ResText {
+	pub fn new(value: &str) -> Self {
+		Self {
+			path: Default::default(),
+			metadata: MetaText::default(),
+			value: value.to_string()
+		}
+	}
 	pub fn get(&self) -> &str { &self.value }
 }
 
@@ -57,8 +64,17 @@ impl<P: GraphicsPlatform + ResourcePlatform + Sized> Resource<P> for ResText {
 		})
 	}
 
-	fn save(&self) {
-		todo!()
+	fn save(&self, path: PathBuf, mut metadata: std::fs::File, mut asset: std::fs::File) -> Result<(), ResourceError> {
+		let metadata_value = ron::ser::to_string(&self.metadata)
+			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::MetadataError, format!("Failed to serialize resource metadata: {}", e).as_str()))?;
+
+		metadata.write_all(metadata_value.as_bytes())
+			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::IoError, format!("Failed to write to metadata file: {}", e).as_str()))?;
+
+		asset.write_all(self.value.as_bytes())
+			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::IoError, format!("Failed to write to asset file: {}", e).as_str()))?;
+
+		Ok(())
 	}
 
 	fn reload(&mut self) {

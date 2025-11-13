@@ -19,7 +19,7 @@ pub struct CoreEngine<P: GraphicsPlatform + ResourcePlatform, A: Application<P>>
 	resources: Arc<Mutex<ResourceEngine<P>>>,
 	scene: Rc<RefCell<SceneEngine<P>>>,
 
-	running: bool,
+	pub running: bool,
 
 	last_loop: time::Instant,
 	loop_delta: time::Duration,
