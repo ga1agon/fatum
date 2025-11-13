@@ -53,25 +53,17 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 		}
 
 		{
-
-			// let metadata = File::create(&metadata_path)
-			// 	.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to create metadata file: {}", e).as_str()))?;
-			// let asset = File::create(&asset_path)
-			// 	.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to create asset file: {}", e).as_str()))?;
-
-			log::info!("{}", metadata_path.clone().to_str().unwrap());
-
 			let metadata = OpenOptions::new()
 				.create(true)
 				.write(true)
-				.append(true)
+				.append(false)
 				.open(&metadata_path)
 				.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to create metadata file: {}", e).as_str()))?;
 
 			let asset = OpenOptions::new()
 				.create(true)
 				.write(true)
-				.append(true)
+				.append(false)
 				.open(&asset_path)
 				.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to create asset file: {}", e).as_str()))?;
 

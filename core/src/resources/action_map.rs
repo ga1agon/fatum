@@ -3,7 +3,7 @@ use std::{collections::HashMap, io::Write, path::PathBuf, sync::atomic::Ordering
 use fatum_resources::{Resource, ResourceMetadata, ResourcePlatform, error::{ErrorKind, ResourceError}};
 use serde::{Deserialize, Serialize};
 
-use crate::input::{ActionMap, InputAction, InputCombo};
+use crate::{deserialize_metadata, input::{ActionMap, InputAction, InputCombo}, serialize_metadata, write_resource_file};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetaActionMap {
@@ -57,13 +57,7 @@ impl<P: ResourcePlatform + Sized> Resource<P> for ResActionMap {
 			value.insert(combos, action);
 		}
 
-		let metadata =
-			if metadata.is_some() {
-				ron::de::from_reader(metadata.unwrap())
-					.map_err(|e| ResourceError::new(&path, ErrorKind::MetadataError, format!("Failed to deserialize the resource metadata file: {}", e).as_str()))?
-			} else {
-				MetaActionMap::default()
-			};
+		let metadata = deserialize_metadata!(metadata, path, MetaActionMap::default());
 		
 		Ok(Self {
 			path,
@@ -82,14 +76,10 @@ impl<P: ResourcePlatform + Sized> Resource<P> for ResActionMap {
 		let value = ron::ser::to_string(&value)
 			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::SerializationError, format!("Failed to serialize asset value: {}", e).as_str()))?;
 
-		let metadata_value = ron::ser::to_string(&self.metadata)
-			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::MetadataError, format!("Failed to serialize resource metadata: {}", e).as_str()))?;
+		let metadata_value = serialize_metadata!(self.metadata, path)?;
 
-		metadata.write_all(metadata_value.as_bytes())
-			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::IoError, format!("Failed to write to metadata file: {}", e).as_str()))?;
-
-		asset.write_all(value.as_bytes())
-			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::IoError, format!("Failed to write to asset file: {}", e).as_str()))?;
+		write_resource_file!(metadata, path, metadata_value.as_bytes())?;
+		write_resource_file!(asset, path, value.as_bytes())?;
 
 		Ok(())
 	}

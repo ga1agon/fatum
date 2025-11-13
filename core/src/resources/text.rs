@@ -4,6 +4,8 @@ use fatum_graphics::platform::GraphicsPlatform;
 use fatum_resources::{Resource, ResourceMetadata, ResourcePlatform, error::ResourceError};
 use serde::{Deserialize, Serialize};
 
+use crate::{deserialize_metadata, serialize_metadata, write_resource_file};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MetaText {
 	pub id: u64,
@@ -50,13 +52,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Sized> Resource<P> for ResText {
 		asset.read_to_string(&mut value)
 			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::IoError, format!("Could not read text file: {}", e).as_str()))?;
 
-		let metadata =
-			if metadata.is_some() {
-				ron::de::from_reader(metadata.unwrap())
-					.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::MetadataError, format!("Failed to deserialize the resource metadata file: {}", e).as_str()))?
-			} else {
-				MetaText::default()
-			};
+		let metadata = deserialize_metadata!(metadata, path, MetaText::default());
 		
 		Ok(Self {
 			path,
@@ -66,14 +62,10 @@ impl<P: GraphicsPlatform + ResourcePlatform + Sized> Resource<P> for ResText {
 	}
 
 	fn save(&self, path: PathBuf, mut metadata: std::fs::File, mut asset: std::fs::File) -> Result<(), ResourceError> {
-		let metadata_value = ron::ser::to_string(&self.metadata)
-			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::MetadataError, format!("Failed to serialize resource metadata: {}", e).as_str()))?;
+		let metadata_value = serialize_metadata!(self.metadata, path)?;
 
-		metadata.write_all(metadata_value.as_bytes())
-			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::IoError, format!("Failed to write to metadata file: {}", e).as_str()))?;
-
-		asset.write_all(self.value.as_bytes())
-			.map_err(|e| ResourceError::new(&path, fatum_resources::error::ErrorKind::IoError, format!("Failed to write to asset file: {}", e).as_str()))?;
+		write_resource_file!(metadata, path, metadata_value.as_bytes())?;
+		write_resource_file!(asset, path, self.value.as_bytes())?;
 
 		Ok(())
 	}
