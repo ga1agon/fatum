@@ -1,4 +1,4 @@
-use std::{path::{Path, PathBuf}, str::FromStr};
+use std::{cell::RefCell, path::{Path, PathBuf}, rc::Rc, str::FromStr};
 
 use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, input::{ActionMap, InputAction, InputCombo, InputMap, Key}, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
@@ -6,7 +6,7 @@ use fatum_resources::ResourcePlatform;
 
 struct BasicApplication<P: GraphicsPlatform + ResourcePlatform> {
 	_marker: std::marker::PhantomData<P>,
-	input_map: Option<InputMap>
+	input_map: Rc<RefCell<InputMap>>
 }
 
 impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for BasicApplication<P> {
@@ -25,16 +25,11 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for BasicApp
 		let action1 = InputAction::new("One");
 		action_map.insert(vec![InputCombo::with_keys(vec![Key::A])], action1);
 
-		self.input_map = engine.input_engine().create_input_map(0, action_map);
+		self.input_map = engine.input_engine().create_input_map(0, action_map).expect("Couldn't create input map");
 	}
 
 	fn process(&mut self, engine: &mut CoreEngine<P, Self>, delta: std::time::Duration) where Self: Sized {
-		{
-			// TODO make engine do this automatically
-			self.input_map.as_mut().unwrap().process();
-		}
-
-		if self.input_map.as_ref().unwrap().was_action_pressed("One") {
+		if self.input_map.borrow().was_action_pressed("One") {
 			log::info!("One was pressed");
 		}
 	}
@@ -44,7 +39,7 @@ impl<P: GraphicsPlatform + ResourcePlatform> Default for BasicApplication<P> {
 	fn default() -> Self {
 		Self {
 			_marker: Default::default(),
-			input_map: None
+			input_map: Default::default()
 		}
 	}
 }

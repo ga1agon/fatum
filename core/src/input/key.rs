@@ -1,7 +1,7 @@
 use num_enum::{FromPrimitive, IntoPrimitive};
 
 #[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, IntoPrimitive, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, IntoPrimitive, Hash, Default)]
 pub enum Key {
 	#[default]
 	Unknown = -1,

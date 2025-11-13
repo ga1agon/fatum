@@ -105,15 +105,17 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 			self.loop_delta = delta;
 			self.last_loop = now;
 
+			self.input_engine().process();
+
 			{
 				let mut app = std::mem::take(&mut self.app);
-				app.process(self, delta.clone());
+				app.process(self, delta);
 				self.app = app;
 			}
 
-			self.scene_engine().process(delta.clone());
+			self.scene_engine().process(delta);
 
-			if !self.graphics_engine().process(delta.clone()) {
+			if !self.graphics_engine().process(delta) {
 				self.running = false;
 			}
 		}

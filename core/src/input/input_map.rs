@@ -1,7 +1,8 @@
-use std::{cell::{Ref, RefCell}, collections::HashMap, rc::Rc};
+use std::{cell::{Ref, RefCell}, collections::HashMap, fmt::Debug, rc::Rc};
 
 use crate::input::{ActionMap, Input, InputAction, Key, MouseButton, MouseScrollWheel};
 
+#[derive(Clone, Default)]
 pub struct InputMap {
 	input: Rc<RefCell<Input>>,
 	action_map: ActionMap,
@@ -161,3 +162,4 @@ impl InputMap {
 		false
 	}
 }
+

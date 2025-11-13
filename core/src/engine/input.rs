@@ -8,7 +8,8 @@ use crate::{GraphicsEngine, input::{self, ActionMap, Input, InputMap}};
 
 pub struct InputEngine<P: GraphicsPlatform> {
 	graphics: Rc<RefCell<GraphicsEngine<P>>>,
-	inputs: HashMap<usize, Rc<RefCell<Input>>>
+	inputs: HashMap<usize, Rc<RefCell<Input>>>,
+	input_maps: Vec<Rc<RefCell<InputMap>>>
 }
 
 impl<P> InputEngine<P> where P: GraphicsPlatform {
@@ -17,7 +18,8 @@ impl<P> InputEngine<P> where P: GraphicsPlatform {
 		
 		Self {
 			graphics,
-			inputs: HashMap::new()
+			inputs: HashMap::new(),
+			input_maps: Vec::new()
 		}
 	}
 
@@ -65,7 +67,7 @@ impl<P> InputEngine<P> where P: GraphicsPlatform {
 		self.inputs.get(&output_index).cloned()
 	}
 
-	pub fn create_input_map(&mut self, output_index: usize, action_map: ActionMap) -> Option<InputMap> {
+	pub fn create_input_map(&mut self, output_index: usize, action_map: ActionMap) -> Option<Rc<RefCell<InputMap>>> {
 		let mut input = self.input(output_index);
 
 		if input.is_none() {
@@ -76,6 +78,15 @@ impl<P> InputEngine<P> where P: GraphicsPlatform {
 			input = self.input(output_index);
 		}
 
-		Some(InputMap::new(input.clone().unwrap(), action_map))
+		let input_map = Rc::new(RefCell::new(InputMap::new(input.clone().unwrap(), action_map)));
+		self.input_maps.push(input_map.clone());
+
+		Some(input_map.clone())
+	}
+
+	pub fn process(&mut self) {
+		for input_map in &self.input_maps {
+			input_map.borrow_mut().process();
+		}
 	}
 }
