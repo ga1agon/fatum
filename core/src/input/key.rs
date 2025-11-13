@@ -1,7 +1,8 @@
 use num_enum::{FromPrimitive, IntoPrimitive};
+use serde::{Deserialize, Serialize};
 
 #[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, IntoPrimitive, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, IntoPrimitive, Hash, Default, Serialize, Deserialize)]
 pub enum Key {
 	#[default]
 	Unknown = -1,

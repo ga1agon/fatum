@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use fatum_signals::StaticSignal;
+use serde::{Deserialize, Serialize};
 
 pub struct InputAction {
 	name: String,

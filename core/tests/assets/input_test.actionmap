@@ -1,0 +1,1 @@
+{[(keys:Some([LeftControl,D]),mouse_buttons:None,mouse_scroll_wheel:None,strict:true)]:"Two",[(keys:Some([A]),mouse_buttons:None,mouse_scroll_wheel:None,strict:false)]:"One",[(keys:None,mouse_buttons:Some([Button1]),mouse_scroll_wheel:None,strict:false)]:"Three",[(keys:None,mouse_buttons:None,mouse_scroll_wheel:Some(Down),strict:false)]:"Four"}

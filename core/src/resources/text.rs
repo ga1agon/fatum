@@ -37,6 +37,7 @@ impl ResText {
 			value: value.to_string()
 		}
 	}
+	
 	pub fn get(&self) -> &str { &self.value }
 }
 

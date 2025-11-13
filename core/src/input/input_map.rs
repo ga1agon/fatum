@@ -1,11 +1,13 @@
 use std::{cell::{Ref, RefCell}, collections::HashMap, fmt::Debug, rc::Rc};
 
-use crate::input::{ActionMap, Input, InputAction, Key, MouseButton, MouseScrollWheel};
+use fatum_resources::ResourceRef;
 
-#[derive(Clone, Default)]
+use crate::{input::{ActionMap, Input, InputAction, Key, MouseButton, MouseScrollWheel}, resources::ResActionMap};
+
+#[derive(Clone)]
 pub struct InputMap {
 	input: Rc<RefCell<Input>>,
-	action_map: ActionMap,
+	action_map: ResourceRef<ResActionMap>,
 	actions: HashMap<String, Rc<RefCell<InputAction>>>,
 
 	current_key_combo: Rc<RefCell<Vec<Key>>>,
@@ -14,10 +16,10 @@ pub struct InputMap {
 }
 
 impl InputMap {
-	pub fn new(input: Rc<RefCell<Input>>, action_map: ActionMap) -> Self {
+	pub fn new(input: Rc<RefCell<Input>>, action_map: ResourceRef<ResActionMap>) -> Self {
 		let mut actions = HashMap::new();
 
-		for (_, action) in &action_map {
+		for (_, action) in action_map.borrow().get() {
 			let name: String;
 
 			{
@@ -67,7 +69,7 @@ impl InputMap {
 	}
 
 	pub fn process(&mut self) {
-		for (combos, action) in &mut self.action_map {
+		for (combos, action) in self.action_map.borrow_mut().get_mut() {
 			let action = action.clone();
 			let mut action = action.borrow_mut();
 			

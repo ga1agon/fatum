@@ -1,11 +1,12 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlWindow}};
+use fatum_resources::ResourceRef;
 use glam::Vec2;
 use glfw::{Action, Context};
 use num_enum::FromPrimitive;
 
-use crate::{GraphicsEngine, input::{self, ActionMap, Input, InputMap, MouseScrollWheel}};
+use crate::{GraphicsEngine, input::{self, ActionMap, Input, InputMap, MouseScrollWheel}, resources::ResActionMap};
 
 pub struct InputEngine<P: GraphicsPlatform> {
 	graphics: Rc<RefCell<GraphicsEngine<P>>>,
@@ -105,7 +106,7 @@ impl<P> InputEngine<P> where P: GraphicsPlatform {
 		self.inputs.get(&output_index).cloned()
 	}
 
-	pub fn create_input_map(&mut self, output_index: usize, action_map: ActionMap) -> Option<Rc<RefCell<InputMap>>> {
+	pub fn create_input_map(&mut self, output_index: usize, action_map: ResourceRef<ResActionMap>) -> Option<Rc<RefCell<InputMap>>> {
 		let mut input = self.input(output_index);
 
 		if input.is_none() {

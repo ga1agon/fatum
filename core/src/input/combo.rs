@@ -1,8 +1,10 @@
 use std::hash::Hash;
 
+use serde::{Deserialize, Serialize};
+
 use crate::input::{Key, MouseButton, MouseScrollWheel};
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct InputCombo {
 	pub keys: Option<Vec<Key>>,
 	pub mouse_buttons: Option<Vec<MouseButton>>,
