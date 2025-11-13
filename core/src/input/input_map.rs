@@ -37,6 +37,7 @@ impl InputMap {
 			current_scroll_wheel: Rc::new(RefCell::new(MouseScrollWheel::None))
 		};
 
+		// warning: extremely ugly
 		let ckc1 = this.current_key_combo.clone();
 		this.input.borrow_mut().key_up.connect(move |args| {
 			ckc1.borrow_mut().retain(|v| *v != args.0);
@@ -55,6 +56,11 @@ impl InputMap {
 		let cmbc2 = this.current_mouse_button_combo.clone();
 		this.input.borrow_mut().mouse_button_down.connect(move |args| {
 			cmbc2.borrow_mut().push(args.0);
+		});
+
+		let csw1 = this.current_scroll_wheel.clone();
+		this.input.borrow_mut().mouse_scroll.connect(move |args| {
+			*csw1.borrow_mut() = *args;
 		});
 
 		this
@@ -97,7 +103,14 @@ impl InputMap {
 					}
 				}
 
-				// mouse wheel...
+				if let Some(combo_scroll_wheel) = &combo.mouse_scroll_wheel {
+					let csw = self.current_scroll_wheel.borrow();
+
+					if *combo_scroll_wheel == *csw {
+						any_combo_down = true;
+						break;
+					}
+				}
 			}
 
 			if any_combo_down {
@@ -120,6 +133,8 @@ impl InputMap {
 				action.up.emit(());
 			}
 		}
+
+		*self.current_scroll_wheel.borrow_mut() = MouseScrollWheel::None;
 	}
 
 	pub fn action(&self, name: &str) -> Option<Rc<RefCell<InputAction>>> {

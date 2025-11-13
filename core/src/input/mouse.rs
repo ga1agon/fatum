@@ -29,5 +29,7 @@ pub enum MouseScrollWheel {
 	#[default]
 	None = -1,
 	Up,
-	Down
+	Down,
+	Left,
+	Right
 }

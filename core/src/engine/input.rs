@@ -5,7 +5,7 @@ use glam::Vec2;
 use glfw::{Action, Context};
 use num_enum::FromPrimitive;
 
-use crate::{GraphicsEngine, input::{self, ActionMap, Input, InputMap}};
+use crate::{GraphicsEngine, input::{self, ActionMap, Input, InputMap, MouseScrollWheel}};
 
 pub struct InputEngine<P: GraphicsPlatform> {
 	graphics: Rc<RefCell<GraphicsEngine<P>>>,
@@ -57,6 +57,23 @@ impl<P> InputEngine<P> where P: GraphicsPlatform {
 					});
 
 					let input3 = input.clone();
+					window_target.window_impl.set_scroll_callback(move |_, delta_x, delta_y| {
+						let scroll_wheel = if delta_y > 0.0 {
+							MouseScrollWheel::Up
+						} else if delta_y < 0.0 {
+							MouseScrollWheel::Down
+						} else if delta_x > 0.0 {
+							MouseScrollWheel::Right
+						} else if delta_x < 0.0 {
+							MouseScrollWheel::Left
+						} else {
+							MouseScrollWheel::None
+						};
+
+						input3.borrow_mut().mouse_scroll.emit(scroll_wheel);
+					});
+
+					let input4 = input.clone();
 					let window_ptr = window_target.window_impl.window_ptr();
 
 					window_target.window_impl.set_cursor_pos_callback(move |_, x, y| {
@@ -69,7 +86,7 @@ impl<P> InputEngine<P> where P: GraphicsPlatform {
 
 						// we use UP = Y+, not Y-, so need to flip vertically
 						let position = Vec2::new(x as f32, window_height as f32 - y as f32);
-						input3.borrow_mut().cursor_position = position;
+						input4.borrow_mut().cursor_position = position;
 					});
 
 					input.borrow_mut().cursor_mode_set.connect(move |mode| {

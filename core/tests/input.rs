@@ -1,6 +1,6 @@
 use std::{cell::RefCell, path::{Path, PathBuf}, rc::Rc, str::FromStr};
 
-use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, input::{ActionMap, InputAction, InputCombo, InputMap, Key}, resources::{ResText, ResTexture2D}};
+use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, input::{ActionMap, InputAction, InputCombo, InputMap, Key, MouseButton, MouseScrollWheel}, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
 
@@ -28,6 +28,12 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for BasicApp
 		let action2 = InputAction::new("Two");
 		action_map.insert(vec![InputCombo::with_keys(vec![Key::LeftControl, Key::D])], action2);
 
+		let action3 = InputAction::new("Three");
+		action_map.insert(vec![InputCombo::with_mouse_buttons(vec![MouseButton::Left])], action3);
+
+		let action4 = InputAction::new("Four");
+		action_map.insert(vec![InputCombo::with_mouse_scroll_wheel(MouseScrollWheel::Down)], action4);
+
 		self.input_map = engine.input_engine().create_input_map(0, action_map).expect("Couldn't create input map");
 	}
 
@@ -43,6 +49,14 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for BasicApp
 			if self.input_map.borrow().is_action_down("Two") {
 				log::info!("Cursor position: {}", input.cursor_position());
 			}
+		}
+
+		if self.input_map.borrow().was_action_pressed("Three") {
+			log::info!("Mouse button left was pressed");
+		}
+
+		if self.input_map.borrow().was_action_pressed("Four") {
+			log::info!("Mouse scroll wheel down");
 		}
 	}
 }

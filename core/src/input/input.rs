@@ -3,7 +3,7 @@ use glam::Vec2;
 use glfw::{Action, Modifiers};
 use num_enum::{FromPrimitive, IntoPrimitive};
 
-use crate::input::{Key, MouseButton};
+use crate::input::{Key, MouseButton, MouseScrollWheel};
 
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, IntoPrimitive, Hash, Default)]
@@ -21,6 +21,7 @@ pub struct Input {
 	pub key_repeat: StaticSignal<(Key, Modifiers)>,
 	pub mouse_button_up: StaticSignal<(MouseButton, Modifiers)>,
 	pub mouse_button_down: StaticSignal<(MouseButton, Modifiers)>,
+	pub mouse_scroll: StaticSignal<MouseScrollWheel>,
 
 	pub(crate) cursor_position: Vec2,
 	pub(crate) cursor_mode: CursorMode,
@@ -36,6 +37,7 @@ impl Input {
 			key_repeat: StaticSignal::new(),
 			mouse_button_up: StaticSignal::new(),
 			mouse_button_down: StaticSignal::new(),
+			mouse_scroll: StaticSignal::new(),
 			cursor_position: Vec2::ZERO,
 			cursor_mode: CursorMode::Normal,
 			cursor_mode_set: StaticSignal::new()
