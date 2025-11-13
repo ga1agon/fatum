@@ -18,5 +18,7 @@ impl Default for ApplicationInfo {
 
 pub trait Application<P: GraphicsPlatform + ResourcePlatform> {
 	fn info() -> ApplicationInfo;
+
 	fn setup(&mut self, engine: &mut CoreEngine<P, Self>) where Self: Sized;
+	fn process(&mut self, engine: &mut CoreEngine<P, Self>, delta: std::time::Duration) where Self: Sized {}
 }

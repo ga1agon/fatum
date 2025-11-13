@@ -151,6 +151,16 @@ impl RenderQueue for OpenGlRenderQueue {
 	fn pipeline_mut(&mut self) -> Option<&mut Box<dyn RenderPipeline>> { self.pipeline.as_mut() }
 	fn set_pipeline(&mut self, pipeline: Option<Box<dyn RenderPipeline>>) { self.pipeline = pipeline }
 
+	fn targets(&self) -> Vec<usize> {
+		let mut ids = Vec::new();
+
+		for id in self.targets.keys() {
+			ids.push(*id);
+		}
+
+		ids
+	}
+
 	fn add_target(&mut self, target: Box<dyn RenderTarget>) -> usize {
 		let id = Self::ID_COUNTER.fetch_add(1, Ordering::Relaxed);
 
@@ -163,7 +173,15 @@ impl RenderQueue for OpenGlRenderQueue {
 			return None;
 		}
 
-		return Some(&self.targets[&index]);
+		Some(&self.targets[&index])
+	}
+
+	fn get_target_mut(&mut self, index: usize) -> Option<&mut Box<dyn RenderTarget>> {
+		if !self.targets.contains_key(&index) {
+			return None;
+		}
+
+		self.targets.get_mut(&index)
 	}
 
 	fn remove_target(&mut self, index: usize) -> bool {

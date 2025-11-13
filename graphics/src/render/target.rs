@@ -12,4 +12,5 @@ pub trait RenderTarget: Any {
 	fn set_active(&mut self, active: bool);
 
 	fn as_any(&self) -> &dyn Any;
+	fn as_any_mut(&mut self) -> &mut dyn Any;
 }

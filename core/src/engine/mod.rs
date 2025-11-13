@@ -9,3 +9,6 @@ pub use resource::*;
 
 mod scene;
 pub use scene::*;
+
+mod input;
+pub use input::*;

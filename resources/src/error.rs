@@ -7,6 +7,8 @@ pub enum ErrorKind {
 	IoError,
 	LoadError,
 	SaveError,
+	SerializationError,
+	DeserializationError,
 	Other
 }
 
