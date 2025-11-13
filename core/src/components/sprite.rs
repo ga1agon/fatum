@@ -29,14 +29,14 @@ static UNIT_QUAD: Model = Model {
 };
 
 #[derive(NodeComponent)]
-pub struct Sprite2D {
+pub struct Sprite {
 	owner: NodeId,
 	scene: Option<SharedSceneGraph>,
 	texture: ResourceRef<ResTexture2D>,
-	model: Rc<Box<fatum_graphics::Model>>
+	pub(crate) model: Rc<Box<fatum_graphics::Model>>
 }
 
-impl Sprite2D {
+impl Sprite {
 	pub fn new(texture: ResourceRef<ResTexture2D>) -> Self {
 		let mut model = Box::new(UNIT_QUAD.clone());
 		model.meshes[0].material.map_0 = texture.borrow().get().handle();
@@ -49,19 +49,6 @@ impl Sprite2D {
 			texture,
 			model
 		}
-	}
-
-	pub fn new_node(texture: ResourceRef<ResTexture2D>) -> Node {
-		let mut node = Node::new();
-
-		let sprite2d = Box::new(Self::new(texture));
-		let model = Box::new(components::Model::new(sprite2d.model.clone()));
-		let transform = Box::new(Transform2D::default());
-
-		node.add_component(sprite2d);
-		node.add_component(model);
-		node.add_component(transform);
-		node
 	}
 
 	pub fn texture(&self) -> ResourceRef<ResTexture2D> { self.texture.clone() }
@@ -85,7 +72,7 @@ impl Sprite2D {
 			if let Some(model) = owner.component_mut::<components::Model>() {
 				model.set_model(self.model.clone());
 			} else {
-				log::warn!("Node {} has Sprite2D, but not Model", owner.id());
+				log::warn!("Node {} has Sprite, but not Model", owner.id());
 			}
 		}
 	}

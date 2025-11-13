@@ -42,6 +42,7 @@ fn opengl_hello_triangle() {
 
 	let camera = Camera2D {
 		position: Vec2::new(-200.0, -50.0),
+		up: Camera2D::UP,
 		size: queue.get_target(window).unwrap().size()
 	};
 

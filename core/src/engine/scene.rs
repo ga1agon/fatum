@@ -7,7 +7,7 @@ use fatum_signals::SignalDispatcher;
 use glam::{Mat4, Quat, Vec3, Vec4};
 use signals2::Connect2;
 
-use crate::{Application, CoreEngine, GraphicsEngine, components::{Camera2D, Camera3D, Model, Transform, Transform2D, Transform3D}};
+use crate::{Application, CoreEngine, GraphicsEngine, components::{self, Model, Transform, Transform2D, Transform3D}};
 
 pub struct SceneEngine<P: GraphicsPlatform> {
 	graphics: Rc<RefCell<GraphicsEngine<P>>>,
@@ -134,15 +134,9 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 
 						node.emit("update", delta);
 
-						if camera_data.is_none() {
-							if let Some(c2d) = node.component::<Camera2D>() {
-								if c2d.is_active() {
-									camera_data = Some(c2d.into());
-								}
-							} else if let Some(c3d) = node.component::<Camera3D>() {
-								if c3d.is_active() {
-									camera_data = Some(c3d.into());
-								}
+						if camera_data.is_none() && let Some(c) = node.component::<components::Camera>() {
+							if c.is_active() {
+								camera_data = Some(c.into());
 							}
 						}
 

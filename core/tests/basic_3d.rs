@@ -1,6 +1,6 @@
 use std::{path::{Path, PathBuf}, rc::Rc, str::FromStr};
 
-use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::{Camera2D, Camera3D, Sprite2D, Transform2D, Transform3D}, nodes::Model3D, resources::{ResText, ResTexture2D}};
+use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::{Transform2D, Transform3D}, nodes::{Camera3D, Model3D}, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Color, Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
 use fatum_scene::{Node, NodeId, SceneGraph};
@@ -64,7 +64,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for Basic3DA
 
 			let camera: NodeId;
 			{
-				let mut node = Camera3D::new_perspective_node(60.0, UVec2::new(1024, 768), true);
+				let mut node = Camera3D::new_perspective(UVec2::new(1024, 768), 60.0, true);
 				node.component_mut::<Transform3D>().unwrap()
 					.translate(Vec3::new(2.0, 1.5, -3.0));
 				node.component_mut::<Transform3D>().unwrap()

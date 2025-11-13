@@ -64,6 +64,7 @@ impl Camera3D {
 #[derive(Debug, Copy, Clone, Pod, Zeroable, PartialEq)]
 pub struct Camera2D {
 	pub position: Vec2,
+	pub up: Vec3,
 	pub size: UVec2,
 }
 
@@ -72,6 +73,7 @@ impl Camera2D {
 	pub const UP: Vec3 = Vec3::Y;
 
 	pub fn create(&self) -> Camera {
+		// TODO use self.up
 		let projection = Mat4::from_cols(
 			Vec4::new(2.0 / self.size.x as f32, 0.0, 0.0, 0.0), 
 			Vec4::new(0.0, 2.0 / self.size.y as f32, 0.0, 0.0), 

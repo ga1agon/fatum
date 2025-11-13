@@ -1,6 +1,6 @@
 use std::{path::{Path, PathBuf}, str::FromStr};
 
-use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::{Camera2D, Sprite2D, Transform2D}, resources::{ResText, ResTexture2D}};
+use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::Transform2D, nodes::{Camera2D, Sprite2D}, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
 use fatum_scene::{Node, SceneGraph};
@@ -28,7 +28,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 			let mut scene = scene.write().unwrap();
 
 			// 1st sprite
-			let mut sprite = Sprite2D::new_node(texture.clone());
+			let mut sprite = Sprite2D::new(texture.clone());
 			sprite.component_mut::<Transform2D>().unwrap()
 				.set_translation(Vec2::new(100.0, 60.0)); // sprites have a pivot at their center
 			sprite.component_mut::<Transform2D>().unwrap()
@@ -38,7 +38,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 
 			// 2nd sprite (parent of 1st)
 			// TODO how to fix transform being scaled up by the parent's scale?? is it a 2D only issue?
-			let mut sprite2 = Sprite2D::new_node(texture.clone());
+			let mut sprite2 = Sprite2D::new(texture.clone());
 			sprite2.component_mut::<Transform2D>().unwrap()
 				.set_translation(Vec2::new(4.0, 3.0)); // this won't be in the window's center, because it's a parent of sprite
 			sprite2.component_mut::<Transform2D>().unwrap()
@@ -63,7 +63,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for SceneGra
 			}
 
 			// camera
-			let camera = Camera2D::new_node(UVec2::new(1024, 768), true);
+			let camera = Camera2D::new(UVec2::new(1024, 768), true);
 			scene.add_node(camera.into(), None);
 		}
 

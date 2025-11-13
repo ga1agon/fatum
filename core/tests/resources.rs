@@ -62,6 +62,7 @@ fn opengl_textures() {
 
 	let camera = Camera2D {
 		position: Vec2::ZERO,
+		up: Camera2D::UP,
 		size: queue.get_target(window).unwrap().size()
 	};
 
