@@ -1,7 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlWindow}};
-use glfw::Action;
+use glam::Vec2;
+use glfw::{Action, Context};
 use num_enum::FromPrimitive;
 
 use crate::{GraphicsEngine, input::{self, ActionMap, Input, InputMap}};
@@ -38,7 +39,6 @@ impl<P> InputEngine<P> where P: GraphicsPlatform {
 			if let Some(target) = queue.get_target_mut(target) {
 				if let Some(window_target) = target.as_any_mut().downcast_mut::<OpenGlWindow>() {
 					let input1 = input.clone();
-
 					window_target.window_impl.set_key_callback(move |_, key, scancode, action, modifiers| {
 						match action {
 							Action::Press => input1.borrow_mut().key_down.emit((input::Key::from_primitive(key as i32), modifiers)),
@@ -48,12 +48,33 @@ impl<P> InputEngine<P> where P: GraphicsPlatform {
 					});
 
 					let input2 = input.clone();
-
 					window_target.window_impl.set_mouse_button_callback(move |_, button, action, modifiers| {
 						match action {
 							Action::Press => input2.borrow_mut().mouse_button_down.emit((input::MouseButton::from_primitive(button as i8), modifiers)),
 							Action::Release => input2.borrow_mut().mouse_button_up.emit((input::MouseButton::from_primitive(button as i8), modifiers)),
 							_ => {}
+						}
+					});
+
+					let input3 = input.clone();
+					let window_ptr = window_target.window_impl.window_ptr();
+
+					window_target.window_impl.set_cursor_pos_callback(move |_, x, y| {
+						let mut window_width = 0;
+						let mut window_height = 0;
+
+						unsafe {
+							glfw::ffi::glfwGetWindowSize(window_ptr, &mut window_width as *mut i32, &mut window_height as *mut i32);
+						}
+
+						// we use UP = Y+, not Y-, so need to flip vertically
+						let position = Vec2::new(x as f32, window_height as f32 - y as f32);
+						input3.borrow_mut().cursor_position = position;
+					});
+
+					input.borrow_mut().cursor_mode_set.connect(move |mode| {
+						unsafe {
+							glfw::ffi::glfwSetInputMode(window_ptr, glfw::ffi::GLFW_CURSOR, *mode as i32);
 						}
 					});
 				}

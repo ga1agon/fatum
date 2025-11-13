@@ -25,12 +25,24 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for BasicApp
 		let action1 = InputAction::new("One");
 		action_map.insert(vec![InputCombo::with_keys(vec![Key::A])], action1);
 
+		let action2 = InputAction::new("Two");
+		action_map.insert(vec![InputCombo::with_keys(vec![Key::LeftControl, Key::D])], action2);
+
 		self.input_map = engine.input_engine().create_input_map(0, action_map).expect("Couldn't create input map");
 	}
 
 	fn process(&mut self, engine: &mut CoreEngine<P, Self>, delta: std::time::Duration) where Self: Sized {
 		if self.input_map.borrow().was_action_pressed("One") {
 			log::info!("One was pressed");
+		}
+
+		{
+			let input = engine.input_engine().input(0).unwrap();
+			let input = input.borrow();
+
+			if self.input_map.borrow().is_action_down("Two") {
+				log::info!("Cursor position: {}", input.cursor_position());
+			}
 		}
 	}
 }
