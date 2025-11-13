@@ -13,8 +13,10 @@ pub trait RenderQueue {
 	fn pipeline_mut(&mut self) -> Option<&mut Box<dyn RenderPipeline>>;
 	fn set_pipeline(&mut self, pipeline: Option<Box<dyn RenderPipeline>>);
 
+	fn targets(&self) -> Vec<usize>;
 	fn add_target(&mut self, target: Box<dyn RenderTarget>) -> usize;
 	fn get_target(&self, index: usize) -> Option<&Box<dyn RenderTarget>>;
+	fn get_target_mut(&mut self, index: usize) -> Option<&mut Box<dyn RenderTarget>>;
 	fn remove_target(&mut self, index: usize) -> bool;
 
 	fn add_command(&mut self, command: fn(std::time::Duration)) -> usize;

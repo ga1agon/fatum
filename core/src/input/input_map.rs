@@ -1,0 +1,124 @@
+use std::{cell::{Ref, RefCell}, rc::Rc};
+
+use crate::input::{ActionMap, Input, Key, MouseButton, MouseScrollWheel};
+
+pub struct InputMap {
+	input: Rc<RefCell<Input>>,
+	action_map: ActionMap,
+
+	current_key_combo: Rc<RefCell<Vec<Key>>>,
+	current_mouse_button_combo: Rc<RefCell<Vec<MouseButton>>>,
+	current_scroll_wheel: Rc<RefCell<MouseScrollWheel>>
+}
+
+impl InputMap {
+	pub fn new(input: Rc<RefCell<Input>>, action_map: ActionMap) -> Self {
+		let this = Self {
+			input,
+			action_map,
+			current_key_combo: Rc::new(RefCell::new(Vec::new())),
+			current_mouse_button_combo: Rc::new(RefCell::new(Vec::new())),
+			current_scroll_wheel: Rc::new(RefCell::new(MouseScrollWheel::None))
+		};
+
+		let ckc1 = this.current_key_combo.clone();
+		this.input.borrow_mut().key_up.connect(move |args| {
+			ckc1.borrow_mut().retain(|v| *v != args.0);
+		});
+
+		let ckc2 = this.current_key_combo.clone();
+		this.input.borrow_mut().key_down.connect(move |args| {
+			ckc2.borrow_mut().push(args.0);
+		});
+
+		let cmbc1 = this.current_mouse_button_combo.clone();
+		this.input.borrow_mut().mouse_button_up.connect(move |args| {
+			cmbc1.borrow_mut().retain(|v| *v != args.0);
+		});
+
+		let cmbc2 = this.current_mouse_button_combo.clone();
+		this.input.borrow_mut().mouse_button_down.connect(move |args| {
+			cmbc2.borrow_mut().push(args.0);
+		});
+
+		this
+	}
+
+	pub fn process(&mut self) {
+		for (combos, action) in &mut self.action_map {
+			let action = action.clone();
+			let mut action = action.borrow_mut();
+			
+			action.pressed_state = false;
+			action.released_state = false;
+
+			let mut any_combo_down = false;
+
+			for combo in combos {
+				if let Some(combo_keys) = &combo.keys {
+					let ckc = self.current_key_combo.borrow();
+
+					let condition =
+						ckc.iter().eq(combo_keys)
+						|| (!combo.strict && combo_keys.iter().all(|v| { ckc.contains(v) }));
+
+					if condition {
+						any_combo_down = true;
+						break;
+					}
+				}
+
+				if let Some(combo_mouse_buttons) = &combo.mouse_buttons {
+					let cmbc = self.current_mouse_button_combo.borrow();
+
+					let condition =
+						cmbc.iter().eq(combo_mouse_buttons)
+						|| (!combo.strict && combo_mouse_buttons.iter().all(|v| { cmbc.contains(v) }));
+
+					if condition {
+						any_combo_down = true;
+						break;
+					}
+				}
+
+				// mouse wheel...
+			}
+
+			if any_combo_down {
+				if !action.down_state {
+					action.down_state = true;
+					action.up_state = false;
+					action.pressed_state = true;
+					action.pressed.emit(());
+				}
+
+				action.down.emit(());
+			} else {
+				if action.down_state {
+					action.down_state = false;
+					action.up_state = true;
+					action.released_state = true;
+					action.released.emit(());
+				}
+
+				action.up.emit(());
+			}
+		}
+	}
+
+	pub fn is_action_up(&self, action: &str) -> bool {
+		todo!()
+	}
+
+	pub fn is_action_down(&self, action: &str) -> bool {
+		todo!()
+	}
+
+	pub fn was_action_pressed(&self, action: &str) -> bool {
+		todo!()
+	}
+
+	pub fn was_action_released(&self, action: &str) -> bool {
+		todo!()
+	}
+}
