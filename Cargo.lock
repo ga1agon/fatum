@@ -375,6 +375,7 @@ dependencies = [
 name = "fatum_resources"
 version = "0.1.0"
 dependencies = [
+ "log",
  "ron",
  "serde",
 ]

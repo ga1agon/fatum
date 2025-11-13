@@ -20,7 +20,7 @@ pub struct CoreEngine<P: GraphicsPlatform + ResourcePlatform, A: Application<P>>
 	scene: Rc<RefCell<SceneEngine<P>>>,
 	input: Rc<RefCell<InputEngine<P>>>,
 
-	running: bool,
+	pub running: bool,
 
 	last_loop: time::Instant,
 	loop_delta: time::Duration,

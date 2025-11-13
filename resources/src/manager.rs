@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, fs::File, io::{BufReader, Read}, path::{Component, Path, PathBuf}, rc::Rc, str::FromStr};
+use std::{cell::RefCell, collections::HashMap, fs::{File, OpenOptions}, io::{BufReader, Read}, path::{Component, Path, PathBuf}, rc::Rc, str::FromStr};
 
 use crate::{Resource, ResourceMetadata, ResourcePlatform, Rf, error::{ErrorKind, ResourceError}, rf};
 
@@ -23,29 +23,79 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 		}
 	}
 
+	pub fn load_or_create<T>(&mut self, location: &str, default: T, cache: bool) -> Result<ResourceRef<T>, ResourceError>
+		where T: Resource<Pl> + 'static
+	{
+		let resource = self.load_by_path(location, cache);
+
+		if resource.is_ok() {
+			return resource;
+		} else {
+			// fuck you for requiring Debug on T
+			unsafe {
+				log::warn!("Resource {} failed to load ({}); using a default value", location, resource.unwrap_err_unchecked());
+			}
+		}
+
+		let resource = rf(Box::new(default));
+
+		let asset_path = self.asset_path(location)?;
+		let metadata_path = PathBuf::from_str(format!("{}{}", asset_path.to_str().unwrap(), crate::METADATA_FILE_EXTENSION).as_str()).unwrap();
+
+		if cache {
+			let resource_dyn = unsafe {
+				let ptr = Rc::into_raw(resource.clone()) as *const RefCell<Box<dyn Resource<Pl>>>;
+				Rc::from_raw(ptr)
+			};
+
+			self.resources_by_id.insert(resource.borrow().metadata().id(), resource_dyn.clone());
+			self.resources_by_path.insert(asset_path.clone(), resource_dyn.clone());
+		}
+
+		{
+
+			// let metadata = File::create(&metadata_path)
+			// 	.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to create metadata file: {}", e).as_str()))?;
+			// let asset = File::create(&asset_path)
+			// 	.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to create asset file: {}", e).as_str()))?;
+
+			log::info!("{}", metadata_path.clone().to_str().unwrap());
+
+			let metadata = OpenOptions::new()
+				.create(true)
+				.write(true)
+				.append(true)
+				.open(&metadata_path)
+				.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to create metadata file: {}", e).as_str()))?;
+
+			let asset = OpenOptions::new()
+				.create(true)
+				.write(true)
+				.append(true)
+				.open(&asset_path)
+				.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to create asset file: {}", e).as_str()))?;
+
+			_ = resource.borrow().save(asset_path, metadata, asset)
+				.inspect_err(|e| {
+					let e = ResourceError::new(location, ErrorKind::SaveError, format!("Failed to save resource: {}", e).as_str());
+					log::warn!("{}", e);
+				});
+		}
+
+		return Ok(resource);
+	}
+
 	pub fn load_by_path<T>(&mut self, location: &str, cache: bool) -> Result<ResourceRef<T>, ResourceError>
 		where T: Resource<Pl> + 'static
 	{
-		let mut asset_path = self.assets_directory.clone();
-
-		let path = PathBuf::from_str(location)
-			.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("&str->PathBuf conversion failed: {}", e).as_str()))?;
-
-		let components = path.components().skip_while(|c| {
-			matches!(c, Component::Prefix(_) | Component::RootDir)
-		});
-
-		for c in components {
-			asset_path.push(c);
-		}
-
-		let metadata_path = asset_path.join(crate::METADATA_FILE_EXTENSION);
+		let asset_path = self.asset_path(location)?;
+		let metadata_path = PathBuf::from_str(format!("{}{}", asset_path.to_str().unwrap(), crate::METADATA_FILE_EXTENSION).as_str()).unwrap();
 
 		if let Some(cached_resource) = self.resources_by_path.get(&metadata_path) {
 			//return Ok(cached_resource.as_any().downcast_ref().unwrap());
 			let borrowed = cached_resource.borrow();
 
-			if let Some(concrete) = (&**borrowed).as_any().downcast_ref::<T>() {
+			if let Some(_) = (&**borrowed).as_any().downcast_ref::<T>() {
 				let resource_rf = unsafe {
 					std::mem::transmute::<Rf<Box<dyn Resource<Pl>>>, Rf<Box<T>>>(cached_resource.clone())
 				};
@@ -63,9 +113,9 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 		let metadata = File::open(&metadata_path)
 			.map_or(None, |f| Some(f));
 		let asset = File::open(&asset_path)
-			.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to open asset: {}", e).as_str()))?;
+			.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("Failed to open asset file: {}", e).as_str()))?;
 
-		let resource = T::load(self, asset_path, metadata, asset)?;
+		let resource = T::load(self, asset_path.clone(), metadata, asset)?;
 		let resource_rf = rf(Box::new(resource));
 
 		if cache {
@@ -76,7 +126,7 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 			};
 
 			self.resources_by_id.insert(resource_rf.borrow().metadata().id(), resource_dyn.clone());
-			self.resources_by_path.insert(metadata_path, resource_dyn.clone());
+			self.resources_by_path.insert(asset_path, resource_dyn.clone());
 		}
 
 		Ok(resource_rf)
@@ -88,4 +138,21 @@ impl<Pl> Resources<Pl> where Pl: ResourcePlatform {
 	}
 
 	pub fn assets_directory(&self) -> &PathBuf { &self.assets_directory }
+
+	pub fn asset_path(&self, location: &str) -> Result<PathBuf, ResourceError> {
+		let mut asset_path = self.assets_directory.clone();
+
+		let path = PathBuf::from_str(location)
+			.map_err(|e| ResourceError::new(location, ErrorKind::IoError, format!("&str->PathBuf conversion failed: {}", e).as_str()))?;
+
+		let components = path.components().skip_while(|c| {
+			matches!(c, Component::Prefix(_) | Component::RootDir)
+		});
+
+		for c in components {
+			asset_path.push(c);
+		}
+
+		Ok(asset_path)
+	}
 }
