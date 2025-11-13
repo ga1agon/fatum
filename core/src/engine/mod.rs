@@ -1,11 +1,11 @@
-mod core_engine;
-pub use core_engine::*;
+mod core;
+pub use core::*;
 
-mod graphics_engine;
-pub use graphics_engine::*;
+mod graphics;
+pub use graphics::*;
 
-mod resource_engine;
-pub use resource_engine::*;
+mod resource;
+pub use resource::*;
 
 mod scene;
 pub use scene::*;
