@@ -29,7 +29,14 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for BasicApp
 	}
 
 	fn process(&mut self, engine: &mut CoreEngine<P, Self>, delta: std::time::Duration) where Self: Sized {
-		
+		{
+			// TODO make engine do this automatically
+			self.input_map.as_mut().unwrap().process();
+		}
+
+		if self.input_map.as_ref().unwrap().was_action_pressed("One") {
+			log::info!("One was pressed");
+		}
 	}
 }
 

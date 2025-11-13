@@ -62,11 +62,7 @@ impl<P> InputEngine<P> where P: GraphicsPlatform {
 	}
 
 	pub fn input(&self, output_index: usize) -> Option<Rc<RefCell<Input>>> {
-		if let Some(input) = self.inputs.get(&output_index) {
-			return Some(input.clone())
-		}
-
-		None
+		self.inputs.get(&output_index).cloned()
 	}
 
 	pub fn create_input_map(&mut self, output_index: usize, action_map: ActionMap) -> Option<InputMap> {

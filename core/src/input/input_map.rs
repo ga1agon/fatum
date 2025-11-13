@@ -1,10 +1,11 @@
-use std::{cell::{Ref, RefCell}, rc::Rc};
+use std::{cell::{Ref, RefCell}, collections::HashMap, rc::Rc};
 
-use crate::input::{ActionMap, Input, Key, MouseButton, MouseScrollWheel};
+use crate::input::{ActionMap, Input, InputAction, Key, MouseButton, MouseScrollWheel};
 
 pub struct InputMap {
 	input: Rc<RefCell<Input>>,
 	action_map: ActionMap,
+	actions: HashMap<String, Rc<RefCell<InputAction>>>,
 
 	current_key_combo: Rc<RefCell<Vec<Key>>>,
 	current_mouse_button_combo: Rc<RefCell<Vec<MouseButton>>>,
@@ -13,9 +14,23 @@ pub struct InputMap {
 
 impl InputMap {
 	pub fn new(input: Rc<RefCell<Input>>, action_map: ActionMap) -> Self {
+		let mut actions = HashMap::new();
+
+		for (_, action) in &action_map {
+			let name: String;
+
+			{
+				let action = action.borrow();
+				name = action.name().to_string();
+			}
+
+			actions.insert(name, action.clone());
+		}
+
 		let this = Self {
 			input,
 			action_map,
+			actions,
 			current_key_combo: Rc::new(RefCell::new(Vec::new())),
 			current_mouse_button_combo: Rc::new(RefCell::new(Vec::new())),
 			current_scroll_wheel: Rc::new(RefCell::new(MouseScrollWheel::None))
@@ -106,19 +121,43 @@ impl InputMap {
 		}
 	}
 
+	pub fn action(&self, name: &str) -> Option<Rc<RefCell<InputAction>>> {
+		self.actions.get(name).cloned()
+	}
+
 	pub fn is_action_up(&self, action: &str) -> bool {
-		todo!()
+		if let Some(action) = self.action(action) {
+			let action = action.borrow();
+			return action.is_up();
+		}
+
+		false
 	}
 
 	pub fn is_action_down(&self, action: &str) -> bool {
-		todo!()
+		if let Some(action) = self.action(action) {
+			let action = action.borrow();
+			return action.is_down();
+		}
+
+		false
 	}
 
 	pub fn was_action_pressed(&self, action: &str) -> bool {
-		todo!()
+		if let Some(action) = self.action(action) {
+			let action = action.borrow();
+			return action.was_pressed();
+		}
+
+		false
 	}
 
 	pub fn was_action_released(&self, action: &str) -> bool {
-		todo!()
+		if let Some(action) = self.action(action) {
+			let action = action.borrow();
+			return action.was_released();
+		}
+
+		false
 	}
 }

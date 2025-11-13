@@ -31,6 +31,8 @@ impl InputAction {
 		}))
 	}
 
+	pub fn name(&self) -> &str { &self.name }
+
 	pub fn is_up(&self) -> bool { self.up_state }
 	pub fn is_down(&self) -> bool { self.down_state }
 	pub fn was_pressed(&self) -> bool { self.pressed_state }
