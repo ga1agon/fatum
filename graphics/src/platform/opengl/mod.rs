@@ -8,7 +8,7 @@ mod render_target;
 mod texture_2d;
 
 use std::{cell::RefCell, hash::Hash, rc::Rc};
-
+use std::any::Any;
 use bytemuck::Pod;
 use glam::{UVec2, Vec2};
 use glow::HasContext;
@@ -66,6 +66,10 @@ impl GraphicsContext<glow::Context> for OpenGlContext {
 #[derive(Clone)]
 pub struct OpenGlPlatform {
 	context: Rc<OpenGlContext>
+}
+
+impl OpenGlPlatform {
+	pub fn context(&self) -> Rc<OpenGlContext> { self.context.clone() }
 }
 
 impl GraphicsPlatform for OpenGlPlatform {
@@ -162,8 +166,6 @@ impl GraphicsPlatform for OpenGlPlatform {
 		}
 	}
 
-	//fn context(&self) -> Rc<OpenGlContext> { self.context.clone() }
-
 	fn create_window(&mut self, title: &str, size: UVec2) -> Result<Box<dyn Window>, PlatformError> {
 		let window = OpenGlWindow::new(self.context.clone(), title, size, &self.context.shared_window.as_ref().unwrap())?;
 		Ok(Box::new(window))
@@ -190,6 +192,8 @@ impl GraphicsPlatform for OpenGlPlatform {
 			PipelineKind::Default | PipelineKind::PBR => Box::new(OpenGlPBRPipeline::new(&self.context.clone(), self))
 		}
 	}
+
+	fn as_any(&self) -> &dyn Any { self }
 }
 
 // TODO a way that would make resources not a required dependency of graphics?

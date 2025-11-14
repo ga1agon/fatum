@@ -24,6 +24,10 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 		}
 	}
 
+	pub fn scenes(&self) -> &HashMap<usize, SharedSceneGraph> {
+		&self.scenes
+	}
+
 	pub fn scene(&self, output_index: usize) -> Option<SharedSceneGraph> {
 		self.scenes.get(&output_index).map_or(None, |v| Some(v.clone()))
 	}

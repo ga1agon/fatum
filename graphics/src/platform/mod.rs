@@ -34,4 +34,6 @@ pub trait GraphicsPlatform
 	fn create_texture_2d(&self, image: image::DynamicImage, options: texture::Options) -> Result<Box<dyn Texture2D>, PlatformError>;
 
 	fn create_pipeline(&self, kind: PipelineKind) -> Box<dyn RenderPipeline>;
+
+	fn as_any(&self) -> &dyn std::any::Any;
 }
