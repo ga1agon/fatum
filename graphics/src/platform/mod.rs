@@ -8,7 +8,6 @@ use glam::UVec2;
 
 pub trait GraphicsContext<T> {
 	fn get(&self) -> Rc<T>;
-	fn glfw(&self) -> Rc<RefCell<glfw::Glfw>>;
 
 	fn create_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>)
 		-> Result<Box<dyn ShaderData<D>>, PlatformError>;

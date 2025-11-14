@@ -3,6 +3,9 @@ use glam::{UVec2, Vec2};
 use crate::render::RenderTarget;
 
 pub trait Window: RenderTarget {
+	fn wimpl(&self) -> &winit::window::Window;
+	fn weloop(&self) -> &winit::event_loop::EventLoop<()>;
+
 	fn title(&self) -> &str;
 	fn set_title(&mut self, title: &str);
 
