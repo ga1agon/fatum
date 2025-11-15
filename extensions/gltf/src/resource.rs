@@ -12,6 +12,7 @@ use fatum_scene::{NodeTree, NodeTreeEntry};
 use glam::{Mat4, Vec2, Vec3, Vec3A};
 use gltf::texture::{MagFilter, WrappingMode};
 use gltf::{Gltf, Semantic};
+use image::{DynamicImage, Rgb, Rgba};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -143,15 +144,27 @@ impl<P: GraphicsPlatform + ResourcePlatform + Sized> Resource<P> for ResGltfScen
 						let data = image_data.get_mut(image.index()).unwrap();
 						
 						let pixels = std::mem::take(&mut data.pixels);
-						let image = image::ImageBuffer::from_raw(data.width / 2, data.height / 2, pixels);
+						let dyn_image: DynamicImage;
 
-						if image.is_none() {
-							log::error!("Couldn't load texture {}", name);
-							return None;
+						// afaik there's no way to check what format the texture is, so we have to resort to this fuckery
+						{
+							let image = image::ImageBuffer::<Rgb<u8>, Vec<u8>>::from_raw(data.width, data.height, pixels.clone());
+
+							if image.is_none() {
+								let image = image::ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(data.width, data.height, pixels);
+
+								if image.is_none() {
+									log::error!("Couldn't load texture {}", name);
+									return None;
+								} else {
+									log::debug!("Loaded texture {} as RGBA8", name);
+									dyn_image = image::DynamicImage::ImageRgba8(image.unwrap());
+								}
+							} else {
+								log::debug!("Loaded texture {} as RGB8", name);
+								dyn_image = image::DynamicImage::ImageRgb8(image.unwrap());
+							}
 						}
-
-						let image = image.unwrap();
-						let image = image::DynamicImage::ImageRgba8(image);
 						
 						let sampler = texture.sampler();
 
@@ -165,10 +178,11 @@ impl<P: GraphicsPlatform + ResourcePlatform + Sized> Resource<P> for ResGltfScen
 								WrappingMode::Repeat => texture::WrapMode::Repeat,
 								WrappingMode::MirroredRepeat => texture::WrapMode::RepeatMirror
 							},
-							format: texture::Format::RGBA8
+							format: texture::Format::RGBA8,
+							flip_v: false
 						};
 
-						if let Ok(texture) = platform.create_texture_2d(image, options) {
+						if let Ok(texture) = platform.create_texture_2d(dyn_image, options) {
 							return Some(texture);
 						} else {
 							log::error!("Couldn't create texture {}", name);

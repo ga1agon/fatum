@@ -25,6 +25,7 @@ pub struct Options {
 	pub filter: Filter,
 	pub wrap_mode: WrapMode,
 	pub format: Format,
+	pub flip_v: bool,
 }
 
 impl Default for Options {
@@ -32,7 +33,8 @@ impl Default for Options {
 		Self {
 			filter: Filter::Linear,
 			wrap_mode: WrapMode::Repeat,
-			format: Format::RGBA8
+			format: Format::RGBA8,
+			flip_v: true
 		}
 	}
 }
