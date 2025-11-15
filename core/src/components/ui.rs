@@ -20,3 +20,9 @@ impl UiElement {
 		(self.draw_function)(delta, self, ui);
 	}
 }
+
+impl Clone for UiElement {
+	fn clone(&self) -> Self {
+		panic!("Unsupported");
+	}
+}

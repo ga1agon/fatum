@@ -1,0 +1,20 @@
+[package]
+name = "fatum_ext_gltf"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+fatum = { path = "../../core" }
+fatum_graphics = { path = "../../graphics" }
+fatum_resources = { path = "../../resources" }
+fatum_scene = { path = "../../scene", features = ["macros"] }
+glam = "0.30.9"
+gltf = { version = "1.4.1", features = ["KHR_materials_emissive_strength", "KHR_materials_ior", "KHR_materials_pbrSpecularGlossiness", "KHR_materials_specular", "KHR_materials_transmission", "KHR_materials_unlit", "extensions"] }
+image = { version = "0.25.8", default-features = false, features = ["png", "webp", "jpeg", "dds"] }
+log = "0.4.28"
+ron = "0.12.0"
+serde = { version = "1.0.228", features = ["derive"] }
+
+[dev-dependencies]
+symlink = "0.1.0"
+winit = { version = "0.30.12", default-features = false, features = ["x11"] }

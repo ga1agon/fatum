@@ -9,6 +9,10 @@ pub fn derive_node_component(input: TokenStream) -> TokenStream {
 
 	let expanded = quote! {
 		impl fatum_scene::NodeComponent for #name {
+			fn name(&self) -> &str {
+				std::any::type_name::<Self>()
+			}
+
 			fn enter_scene(&mut self, owner: fatum_scene::NodeId, scene: fatum_scene::SharedSceneGraph) {
 				self.owner = owner;
 				self.scene = Some(scene);
@@ -17,6 +21,10 @@ pub fn derive_node_component(input: TokenStream) -> TokenStream {
 			fn exit_scene(&mut self) {
 				self.owner = Default::default();
 				self.scene = Default::default();
+			}
+
+			fn clone_component(&self) -> Box<dyn NodeComponent> {
+				std::boxed::Box::new(std::clone::Clone::clone(self))
 			}
 
 			fn as_any(&self) -> &dyn std::any::Any {

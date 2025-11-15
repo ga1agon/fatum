@@ -5,7 +5,7 @@ use fatum_scene::{NodeComponent, NodeId, SceneGraph, SharedSceneGraph};
 
 use crate::components;
 
-#[derive(NodeComponent)]
+#[derive(NodeComponent, Clone)]
 pub struct Model {
 	owner: NodeId,
 	scene: Option<SharedSceneGraph>,

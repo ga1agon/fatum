@@ -52,7 +52,10 @@ impl OglTexture2D {
 			gl.tex_parameter_f32_slice(glow::TEXTURE_2D, glow::TEXTURE_BORDER_COLOR, &[0.0, 0.0, 0.0, 0.0]);
 
 			// TODO is this the most optimal way to do this?
-			image.apply_orientation(Orientation::FlipVertical);
+			if options.flip_v {
+				image.apply_orientation(Orientation::FlipVertical);
+			}
+			
 			let u8_image = image.to_rgba8();
 			let pixel_data = u8_image.as_raw();
 
