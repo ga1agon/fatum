@@ -14,6 +14,8 @@ pub struct OpenGlPBRPipeline {
 	camera_data: Box<dyn ShaderData<Camera>>,
 
 	clear_color: Color,
+	depth_test: bool,
+	back_culling: bool,
 }
 
 impl OpenGlPBRPipeline {
@@ -146,7 +148,9 @@ void main() {
 			material_data,
 			matrix_data,
 			camera_data,
-			clear_color: Color::from_rgb_f32(0.0, 0.0, 0.0)
+			clear_color: Color::from_rgb_f32(0.0, 0.0, 0.0),
+			depth_test: true,
+			back_culling: true
 		}
 	}
 }
@@ -168,6 +172,15 @@ impl RenderPipeline for OpenGlPBRPipeline {
 			);
 
 			self.gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
+
+			if self.depth_test {
+				self.gl.enable(glow::DEPTH_TEST);
+			}
+
+			if self.back_culling {
+				self.gl.enable(glow::CULL_FACE);
+				self.gl.cull_face(glow::BACK);
+			}
 		}
 	}
 	
