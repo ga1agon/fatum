@@ -65,6 +65,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Sized> Resource<P> for ResGltfScen
 		).map_err(|e| ResourceError::new(&path, ErrorKind::LoadError, format!("Couldn't import glTF document image data: {}", e).as_str()))?;
 
 		let mut tree = NodeTree::new();
+		tree.root.components.push(Box::new(Transform3D::default()));
 
 		fn process_node<P: GraphicsPlatform + ResourcePlatform + Sized>(
 			platform: Rc<P>,
@@ -239,6 +240,7 @@ impl<P: GraphicsPlatform + ResourcePlatform + Sized> Resource<P> for ResGltfScen
 
 		for scene in gltf.scenes() {
 			let mut scene_node = NodeTreeEntry::new();
+			scene_node.components.push(Box::new(Transform3D::default()));
 			
 			for node in scene.nodes() {
 				process_node(manager.platform.clone(), &buffer_data, &mut image_data, &mut scene_node, node);

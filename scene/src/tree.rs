@@ -28,7 +28,8 @@ impl NodeTree {
 			root: NodeTreeEntry::new()
 		}
 	}
-	pub fn instantiate(&self, scene: SharedSceneGraph, parent: Option<NodeId>) {
+
+	pub fn instantiate(&self, scene: SharedSceneGraph, parent: Option<NodeId>) -> u32 {
 		let mut scene = scene.write().unwrap();
 
 		fn create_node(entry: &NodeTreeEntry) -> Node {
@@ -41,15 +42,17 @@ impl NodeTree {
 			node
 		}
 
-		fn add_node(scene: &mut RwLockWriteGuard<'_, SceneGraph>, entry: &NodeTreeEntry, parent: Option<NodeId>) {
+		fn add_node(scene: &mut RwLockWriteGuard<'_, SceneGraph>, entry: &NodeTreeEntry, parent: Option<NodeId>) -> u32 {
 			let node = create_node(entry);
 			let node = scene.add_node(node, parent);
 
 			for child in &entry.children {
 				add_node(scene, child, Some(node));
 			}
+
+			node
 		}
 
-		add_node(&mut scene, &self.root, parent);
+		add_node(&mut scene, &self.root, parent)
 	}
 }

@@ -23,10 +23,36 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for GltfView
 		engine.graphics_engine().create_queue(0, PipelineKind::Default);
 		engine.graphics_engine().create_output(0, event_loop, OutputKind::Window);
 
-		let gltf = engine.resource_engine().get().load_by_path::<ResGltfScene>("AntiqueCamera.glb", false).unwrap();
+		let gltf1 = engine.resource_engine().get().load_by_path::<ResGltfScene>("modern_arm_chair_01/modern_arm_chair_01_1k.gltf", false).unwrap();
+		let gltf2 = engine.resource_engine().get().load_by_path::<ResGltfScene>("mid_century_lounge_chair/mid_century_lounge_chair_1k.gltf", false).unwrap();
 
 		let scene = SceneGraph::new();
-		gltf.borrow().get().instantiate(scene.clone(), None);
+		let gltf1 = gltf1.borrow().get().instantiate(scene.clone(), None);
+		let gltf2 = gltf2.borrow().get().instantiate(scene.clone(), None);
+
+		{
+			let mut scene = scene.write().unwrap();
+
+			{
+				let gltf1 = scene.node_mut(gltf1).unwrap();
+				gltf1.set_name("Modern arm chair");
+
+				let t3d = gltf1.component_mut::<Transform3D>().unwrap();
+				t3d.translate(Vec3::new(-2.0, 0.0, 0.0));
+				t3d.rotate_euler(EulerRot::XYZ, Vec3::new(0.0, 180.0f32.to_radians(), 0.0));
+				t3d.set_scale(Vec3::new(2.0, 2.0, 2.0));
+			}
+
+			{
+				let gltf2 = scene.node_mut(gltf2).unwrap();
+				gltf2.set_name("Mid-century lounge chair");
+
+				let t3d = gltf2.component_mut::<Transform3D>().unwrap();
+				t3d.translate(Vec3::new(2.0, 0.0, 0.0));
+				t3d.rotate_euler(EulerRot::XYZ, Vec3::new(0.0, 180.0f32.to_radians(), 0.0));
+				t3d.set_scale(Vec3::new(2.0, 2.0, 2.0));
+			}
+		}
 
 		{
 			{
@@ -35,9 +61,9 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for GltfView
 				{
 					let mut node = Camera3D::new_perspective(UVec2::new(1024, 768), 60.0, true);
 					node.component_mut::<Transform3D>().unwrap()
-						.translate(Vec3::new(-7.0, 3.0, -7.0));
+						.translate(Vec3::new(-5.0, 4.0, -5.0));
 					node.component_mut::<Transform3D>().unwrap()
-						.rotate_euler(EulerRot::YXZ, Vec3::new(45.0f32.to_radians(), 0.0, 0.0));
+						.rotate_euler(EulerRot::YXZ, Vec3::new(45.0f32.to_radians(), 25.0f32.to_radians(), 0.0));
 
 					scene.add_node(node.into(), None);
 				}
