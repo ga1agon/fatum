@@ -1,6 +1,6 @@
 pub mod opengl;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use crate::{RenderWindow, error::PlatformError, render::{PipelineKind, RenderPipeline, RenderQueue}, shader::{Shader, ShaderData, ShaderFamily, ShaderProgram}, texture::{self, Texture2D}};
 use bytemuck::Pod;
@@ -13,7 +13,7 @@ pub enum PlatformId {
 }
 
 pub trait GraphicsContext<T> {
-	fn get(&self) -> Rc<T>;
+	fn get(&self) -> Arc<T>;
 
 	fn create_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>)
 		-> Result<Box<dyn ShaderData<D>>, PlatformError>;
@@ -39,4 +39,5 @@ pub trait GraphicsPlatform
 	fn create_pipeline(&self, kind: PipelineKind) -> Box<dyn RenderPipeline>;
 
 	fn as_any(&self) -> &dyn std::any::Any;
+	fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }

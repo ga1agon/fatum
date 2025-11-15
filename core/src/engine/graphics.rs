@@ -72,17 +72,61 @@ impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
 		&mut self.queues
 	}
 
-	pub fn window(&mut self, id: WindowId) -> Option<&mut Box<dyn RenderWindow>> {
+	pub fn queue_of_window(&self, window: WindowId) -> Option<usize> {
+		if let Some((queue_index, _)) = self.windows.get(&window) {
+			return Some(*queue_index);
+		}
+
+		None
+	}
+
+	pub fn window(&self, id: WindowId) -> Option<&dyn RenderWindow> {
+		if 
+			let Some((queue_index, window_index)) = &self.windows.get(&id)
+			&& let Some(queue) = self.queues.get(queue_index)
+			&& let Some(target) = queue.get_target(*window_index)
+		{
+			match P::id() {
+				PlatformId::OpenGL => {
+					let window = target.as_any().downcast_ref::<OpenGlWindow>().unwrap();
+					return Some(window as &dyn RenderWindow);
+				},
+				_ => todo!()
+			}
+		}
+
+		None
+	}
+
+	pub fn window_mut(&mut self, id: WindowId) -> Option<&mut dyn RenderWindow> {
 		if 
 			let Some((queue_index, window_index)) = &self.windows.get(&id)
 			&& let Some(queue) = self.queues.get_mut(queue_index)
 			&& let Some(target) = queue.get_target_mut(*window_index)
 		{
-			return Some(target.as_any_mut().downcast_mut::<Box<dyn RenderWindow>>().unwrap());
+			match P::id() {
+				PlatformId::OpenGL => {
+					let window = target.as_any_mut().downcast_mut::<OpenGlWindow>().unwrap();
+					return Some(window as &mut dyn RenderWindow);
+				},
+				_ => todo!()
+			}
 		}
 
 		None
 	}
+
+	// pub fn window_mut(&mut self, id: WindowId) -> Option<&mut Box<dyn RenderWindow>> {
+	// 	if 
+	// 		let Some((queue_index, window_index)) = &self.windows.get(&id)
+	// 		&& let Some(queue) = self.queues.get_mut(queue_index)
+	// 		&& let Some(target) = queue.get_target_mut(*window_index)
+	// 	{
+	// 		return Some(target.as_any_mut().downcast_mut::<Box<dyn RenderWindow>>().unwrap());
+	// 	}
+
+	// 	None
+	// }
 
 	pub fn is_active(&self) -> bool {
 		self.queues.iter().all(|o| {
@@ -90,13 +134,33 @@ impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
 		})
 	}
 
-	pub fn process(&mut self, _: std::time::Duration) {
-		for (_, queue) in &mut self.queues {
-			if !queue.is_active() {
-				continue;
-			}
+	pub fn begin(&mut self, window: WindowId) -> bool {
+		let (queue_index, target_id) = self.windows[&window];
+		let queue = self.queues.get_mut(&queue_index).unwrap();
 
-			_ = queue.process();
+		if queue.is_active() {
+			queue.begin_single(target_id);
+			return true;
+		}
+
+		false
+	}
+
+	pub fn process(&mut self, window: WindowId) {
+		let (queue_index, target_id) = self.windows[&window];
+		let queue = self.queues.get_mut(&queue_index).unwrap();
+
+		if queue.is_active() {
+			queue.process_single(target_id);
+		}
+	}
+
+	pub fn end(&mut self, window: WindowId) {
+		let (queue_index, target_id) = self.windows[&window];
+		let queue = self.queues.get_mut(&queue_index).unwrap();
+
+		if queue.is_active() {
+			queue.end_single(target_id);
 		}
 	}
 }

@@ -2,13 +2,13 @@ use glam::Mat4;
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
 
 use crate::{Camera, Model, Rf, Vertex, platform::{GraphicsContext, opengl::{OpenGlContext}}, render::*};
-use std::{cell::RefCell, collections::HashMap, hash::Hash, num::{NonZero, NonZeroU32}, rc::Rc, sync::atomic::{AtomicUsize, Ordering}, time};
+use std::{cell::RefCell, collections::HashMap, hash::Hash, num::{NonZero, NonZeroU32}, rc::Rc, sync::{Arc, atomic::{AtomicUsize, Ordering}}, time};
 
 struct ObjectData {
 	id: u64,
 	matrix: Mat4,
 
-	gl: Rc<glow::Context>,
+	gl: Arc<glow::Context>,
 	vaos: Vec<NativeVertexArray>,
 	vbos: Vec<NativeBuffer>,
 }
@@ -59,6 +59,103 @@ impl OpenGlRenderQueue {
 }
 
 impl RenderQueue for OpenGlRenderQueue {
+	fn begin_single(&mut self, index: usize) -> bool {
+		if let Some(target) = self.targets.get_mut(&index) {
+			target.begin();
+			return true;
+		}
+
+		false
+	}
+
+	fn end_single(&mut self, index: usize) -> bool {
+		if let Some(target) = self.targets.get_mut(&index) {
+			target.end();
+			return true;
+		}
+
+		false
+	}
+
+	fn process_single(&mut self, index: usize) -> bool {
+		let target = self.targets.get_mut(&index);
+		let pipeline = &mut self.pipeline;
+
+		if target.is_none() || pipeline.is_none() {
+			return false;
+		}
+
+		let target = target.unwrap();
+		let pipeline = pipeline.as_mut().unwrap();
+
+		let gl = self.context.get();
+
+		pipeline.begin();
+
+		for (object, data) in &self.objects {
+			let meshes = &object.model.meshes;
+
+			pipeline.matrix_data().set_data(vec![data.matrix].into());
+			pipeline.matrix_data().push();
+
+			let vaos = &data.vaos;
+
+			for i in 0..object.model.meshes.len() {
+				let mesh = &meshes[i];
+				let material = mesh.material;
+
+				pipeline.material_data().set_data(vec![material].into());
+				pipeline.material_data().push();
+
+				// ugly as shit
+				unsafe {
+					if material.map_0 > 0 {
+						gl.active_texture(glow::TEXTURE0);
+						gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_0))));
+					}
+
+					if material.map_1 > 0 {
+						gl.active_texture(glow::TEXTURE1);
+						gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_1))));
+					}
+
+					if material.map_2 > 0 {
+						gl.active_texture(glow::TEXTURE2);
+						gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_2))));
+					}
+
+					if material.map_3 > 0 {
+						gl.active_texture(glow::TEXTURE3);
+						gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_3))));
+					}
+
+					if material.map_4 > 0 {
+						gl.active_texture(glow::TEXTURE4);
+						gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_4))));
+					}
+				}
+
+				unsafe {
+					gl.bind_vertex_array(Some(vaos[i]));
+
+					gl.draw_elements(
+						glow::TRIANGLES,
+						mesh.indices.len() as i32,
+						glow::UNSIGNED_INT,
+						0
+					);
+				}
+			}
+		}
+
+		for (_, command) in &self.commands {
+			command(self.process_delta);
+		}
+
+		pipeline.end();
+		true
+	}
+
 	fn process(&mut self) {
 		if self.pipeline.is_none() {
 			return;
@@ -68,78 +165,13 @@ impl RenderQueue for OpenGlRenderQueue {
 		self.process_delta = now - self.last_process;
 		self.last_process = now;
 
-		let pipeline = self.pipeline.as_mut().unwrap();
-		pipeline.begin();
+		let targets: Vec<usize> = self.targets.keys().cloned().collect();
 
-		let gl = self.context.get();
-
-		for (_, target) in &mut self.targets {
-			target.begin();
-
-			for (object, data) in &self.objects {
-				let meshes = &object.model.meshes;
-
-				pipeline.matrix_data().set_data(vec![data.matrix].into());
-				pipeline.matrix_data().push();
-
-				let vaos = &data.vaos;
-
-				for i in 0..object.model.meshes.len() {
-					let mesh = &meshes[i];
-					let material = mesh.material;
-
-					pipeline.material_data().set_data(vec![material].into());
-					pipeline.material_data().push();
-
-					// ugly as shit
-					unsafe {
-						if material.map_0 > 0 {
-							gl.active_texture(glow::TEXTURE0);
-							gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_0))));
-						}
-
-						if material.map_1 > 0 {
-							gl.active_texture(glow::TEXTURE1);
-							gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_1))));
-						}
-
-						if material.map_2 > 0 {
-							gl.active_texture(glow::TEXTURE2);
-							gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_2))));
-						}
-
-						if material.map_3 > 0 {
-							gl.active_texture(glow::TEXTURE3);
-							gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_3))));
-						}
-
-						if material.map_4 > 0 {
-							gl.active_texture(glow::TEXTURE4);
-							gl.bind_texture(glow::TEXTURE_2D, Some(NativeTexture(NonZero::<u32>::new_unchecked(material.map_4))));
-						}
-					}
-
-					unsafe {
-						gl.bind_vertex_array(Some(vaos[i]));
-
-						gl.draw_elements(
-							glow::TRIANGLES,
-							mesh.indices.len() as i32,
-							glow::UNSIGNED_INT,
-							0
-						);
-					}
-				}
-			}
-
-			for (_, command) in &self.commands {
-				command(self.process_delta);
-			}
-
-			target.end();
+		for target in targets {
+			self.begin_single(target);
+			self.process_single(target);
+			self.end_single(target);
 		}
-
-		pipeline.end();
 	}
 
 	fn is_active(&self) -> bool {

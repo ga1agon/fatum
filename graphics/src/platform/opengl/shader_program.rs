@@ -1,11 +1,11 @@
-use std::{num::NonZeroU32, rc::Rc};
+use std::{num::NonZeroU32, rc::Rc, sync::Arc};
 
 use glow::{HasContext, NativeProgram, NativeShader};
 
 use crate::{error::{ErrorKind, PlatformError}, platform::{GraphicsContext, opengl::OpenGlContext}, shader::{Shader, ShaderProgram}};
 
 pub struct OpenGlShaderProgram {
-	gl: Rc<glow::Context>,
+	gl: Arc<glow::Context>,
 
 	handle: Option<NativeProgram>,
 	shaders: Vec<Box<dyn Shader>>

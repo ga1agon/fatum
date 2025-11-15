@@ -4,11 +4,11 @@ use fatum_scene::{NodeComponent, NodeId, SharedSceneGraph};
 pub struct UiElement {
 	owner: NodeId,
 	scene: Option<SharedSceneGraph>,
-	draw_function: Box<dyn Fn(std::time::Duration, &Self, &mut dear_imgui_rs::Ui) -> ()>
+	draw_function: Box<dyn Fn(std::time::Duration, &Self, &egui::Context) -> ()>
 }
 
 impl UiElement {
-	pub fn new<F: Fn(std::time::Duration, &Self, &mut dear_imgui_rs::Ui) -> () + 'static>(draw_function: F) -> Self {
+	pub fn new<F: Fn(std::time::Duration, &Self, &egui::Context) -> () + 'static>(draw_function: F) -> Self {
 		Self {
 			owner: Default::default(),
 			scene: Default::default(),
@@ -16,7 +16,7 @@ impl UiElement {
 		}
 	}
 
-	pub fn draw(&self, delta: std::time::Duration, ui: &mut dear_imgui_rs::Ui) {
+	pub fn draw(&self, delta: std::time::Duration, ui: &egui::Context) {
 		(self.draw_function)(delta, self, ui);
 	}
 }

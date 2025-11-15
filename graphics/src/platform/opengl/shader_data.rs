@@ -1,4 +1,4 @@
-use std::{num::{NonZero, NonZeroU32}, rc::Rc, u8};
+use std::{num::{NonZero, NonZeroU32}, rc::Rc, sync::Arc, u8};
 
 use bytemuck::Pod;
 use glow::HasContext;
@@ -6,7 +6,7 @@ use glow::HasContext;
 use crate::{error::{ErrorKind, PlatformError}, platform::{GraphicsContext, opengl::OpenGlContext}, shader::{ShaderData, ShaderProgram}};
 
 pub struct OpenGlShaderData<D> {
-	gl: Rc<glow::Context>,
+	gl: Arc<glow::Context>,
 	handle: Option<glow::NativeBuffer>,
 
 	name: String,

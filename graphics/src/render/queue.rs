@@ -5,6 +5,10 @@ use glam::Mat4;
 use crate::{Camera, Model, Rf, render::{RenderObject, pipeline::RenderPipeline, target::RenderTarget}};
 
 pub trait RenderQueue {
+	fn begin_single(&mut self, index: usize) -> bool;
+	fn end_single(&mut self, index: usize) -> bool;
+	fn process_single(&mut self, index: usize) -> bool;
+
 	fn process(&mut self);
 
 	fn is_active(&self) -> bool;

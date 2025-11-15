@@ -28,9 +28,14 @@ signals2 = "0.3.3"
 lazy_static = "1.5.0"
 static_init = { version = "1.0.4", features = ["thread_local"] }
 num_enum = "0.7.5"
-dear-imgui-rs = { version = "0.5.0", default-features = false }
-dear-imgui-glow = "0.5.0"
-winit = { version = "0.30.12", default-features = false, features = [ "x11", "rwh_06", "serde" ] }
+# dear-imgui-rs = { version = "0.5.0", default-features = false }
+# dear-imgui-glow = "0.5.0"
+winit = { version = "0.30.12", default-features = false, features = ["x11", "rwh_06", "serde"] }
+egui = { version = "0.33.2", default-features = false, features = ["default_fonts"] }
+egui_glow = { version = "0.33.2", default-features = false, features = ["winit", "egui-winit"] }
+egui-winit = { version = "0.33.2", default-features = false, features = [] }
+tracing-subscriber = { version = "0.3.20", default-features = false, features = ["registry", "std"] }
+tracing = { version = "0.1.41", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 simple_logger = "5.1.0"

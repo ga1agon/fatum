@@ -1,4 +1,4 @@
-use std::{cell::RefCell, hash::Hash, num::NonZeroU32, rc::Rc};
+use std::{cell::RefCell, hash::Hash, num::NonZeroU32, rc::Rc, sync::Arc};
 
 use glam::UVec2;
 use glow::HasContext;
@@ -13,7 +13,7 @@ pub struct OpenGlWindow {
 	wimpl: winit::window::Window,
 	active: bool,
 
-	pub gl: Rc<glow::Context>,
+	pub gl: Arc<glow::Context>,
 	pub gl_context: Rc<RefCell<PossiblyCurrentContext>>,
 	pub gl_surface: Surface<WindowSurface>,
 
