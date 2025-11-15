@@ -1,20 +1,24 @@
 use glam::{UVec2, Vec2};
+use winit::window::Window;
 
 use crate::render::RenderTarget;
 
-pub trait Window: RenderTarget {
+pub trait RenderWindow: RenderTarget {
 	fn wimpl(&self) -> &winit::window::Window;
-	fn weloop(&self) -> &winit::event_loop::EventLoop<()>;
+	fn wimpl_mut(&mut self) -> &mut winit::window::Window;
 
-	fn title(&self) -> &str;
-	fn set_title(&mut self, title: &str);
+	fn title(&self) -> String { self.wimpl().title() }
+	fn set_title(&self, title: &str) { self.wimpl().set_title(title); }
 
-	//fn size(&self) -> UVec2;
-	//fn set_size(&mut self, size: UVec2);
+	fn show(&mut self) {
+		self.wimpl().set_visible(true);
+		self.set_active(true);
+	}
 
-	fn show(&mut self);
-	fn hide(&mut self);
-	fn close(self);
+	fn hide(&self) { self.wimpl().set_visible(false); }
 
-	fn should_close(&self) -> bool;
+	fn close(&mut self) where Self: Sized {
+		self.wimpl().set_visible(false);
+		self.set_active(false);
+	}
 }

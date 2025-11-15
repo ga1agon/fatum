@@ -1,14 +1,17 @@
-use fatum_graphics::{Camera2D, Color, Material, Mesh, Model, Vertex, Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderObject, RenderPipeline}};
+use fatum_graphics::{Camera2D, Color, Material, Mesh, Model, Vertex, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderObject, RenderPipeline}};
 use glam::{EulerRot, Mat4, Quat, UVec2, Vec2, Vec3};
+use winit::{event::{Event, WindowEvent}, event_loop::EventLoop, platform::x11::EventLoopBuilderExtX11};
 use std::{rc::Rc, *};
 
 #[test]
 fn opengl_hello_triangle() {
-	let mut platform = OpenGlPlatform::new();
-	let mut window = platform.create_window("Hello Triangle", UVec2::new(800, 600))
+	let event_loop = EventLoop::builder().with_any_thread(true).build().unwrap();
+	let mut platform = OpenGlPlatform::new(&event_loop).unwrap();
+	let mut window = platform.create_window(&event_loop, "Hello Triangle", UVec2::new(800, 600))
 		.unwrap();
-
+	
 	window.show();
+	window.begin();
 
 	let mut queue = platform.create_queue();
 	let window = queue.add_target(window);
@@ -52,7 +55,20 @@ fn opengl_hello_triangle() {
 		//println!("Delta time: {}", delta.as_secs_f32() * 1000.0);
 	});
 
-	while queue.is_active() {
-		queue.process();
-	}
+	// while queue.is_active() {
+	// 	queue.process();
+	// }
+	let _ = event_loop.run(move |event: Event<()>, event_loop| {
+		if let Event::WindowEvent { event, .. } = event {
+			match event {
+				WindowEvent::CloseRequested => {
+					event_loop.exit();
+				}
+				WindowEvent::RedrawRequested => {
+					queue.process();
+				}
+				_ => (),
+			}
+		}
+	});
 }
