@@ -1,4 +1,4 @@
-use std::{io::BufReader, path::PathBuf, rc::Rc};
+use std::{io::BufReader, path::PathBuf, rc::Rc, sync::Arc};
 
 use glam::UVec2;
 use glow::{HasContext, NativeTexture, PixelUnpackData};
@@ -7,7 +7,7 @@ use image::{GenericImageView, RgbaImage, metadata::Orientation};
 use crate::{error::{ErrorKind, PlatformError}, platform::{GraphicsContext, GraphicsPlatform, opengl::{OpenGlContext, OpenGlPlatform}}, texture::{self, Filter, Format, Texture2D, WrapMode}};
 
 pub struct OglTexture2D {
-	gl: Rc<glow::Context>,
+	gl: Arc<glow::Context>,
 
 	handle: NativeTexture,
 	options: texture::Options,

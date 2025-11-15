@@ -24,16 +24,20 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 		}
 	}
 
-	pub fn scene(&self, output_index: usize) -> Option<SharedSceneGraph> {
-		self.scenes.get(&output_index).map_or(None, |v| Some(v.clone()))
+	pub fn scenes(&self) -> &HashMap<usize, SharedSceneGraph> {
+		&self.scenes
 	}
 
-	pub fn set_scene(&mut self, output_index: usize, scene: SharedSceneGraph) -> Option<bool> {
-		log::info!("Setting scene for output {}: {:?}", output_index, scene);
+	pub fn scene(&self, queue_index: usize) -> Option<SharedSceneGraph> {
+		self.scenes.get(&queue_index).map_or(None, |v| Some(v.clone()))
+	}
+
+	pub fn set_scene(&mut self, queue_index: usize, scene: SharedSceneGraph) -> Option<bool> {
+		log::info!("Setting scene for output {}: {:?}", queue_index, scene);
 
 		let mut graphics = self.graphics.borrow_mut();
 
-		let queue = graphics.queue(output_index)?;
+		let queue = graphics.queue(queue_index)?;
 
 		{
 			let nodes: Vec<u32> = ScenePostDfsIterator::new(scene.clone(), Default::default())
@@ -109,8 +113,8 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 			});
 		}
 
-		self.scenes.insert(output_index, scene);
-		log::info!("Scene imported for output {}", output_index);
+		self.scenes.insert(queue_index, scene);
+		log::info!("Scene imported for output {}", queue_index);
 		Some(true)
 	}
 

@@ -6,6 +6,7 @@ pub mod components;
 pub mod nodes;
 pub mod helpers;
 pub mod input;
+pub mod ui;
 
 mod app;
 use std::rc::Rc;

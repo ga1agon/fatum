@@ -7,7 +7,7 @@ mod pipeline;
 mod render_target;
 mod texture_2d;
 
-use std::{cell::RefCell, hash::Hash, num::NonZeroU32, rc::Rc};
+use std::{cell::RefCell, hash::Hash, num::NonZeroU32, rc::Rc, sync::Arc};
 
 use bytemuck::Pod;
 use glam::{UVec2, Vec2};
@@ -28,12 +28,12 @@ use crate::{RenderWindow, error::{ErrorKind, PlatformError}, platform::{Graphics
 
 #[derive(Clone)]
 pub struct OpenGlContext {
-	gl: Rc<glow::Context>,
+	gl: Arc<glow::Context>,
 	glutin: Rc<RefCell<PossiblyCurrentContext>>,
 }
 
 impl GraphicsContext<glow::Context> for OpenGlContext {
-	fn get(&self) -> Rc<glow::Context> { self.gl.clone() }
+	fn get(&self) -> Arc<glow::Context> { self.gl.clone() }
 
 	fn create_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>) -> Result<Box<dyn ShaderData<D>>, PlatformError> {
 		Ok(Box::new(OpenGlShaderData::new(&self.clone(), program, name, binding, data)?))
@@ -46,6 +46,10 @@ pub struct OpenGlPlatform {
 }
 
 impl OpenGlPlatform {
+	pub fn context(&self) -> Rc<OpenGlContext> {
+		self.context.clone()
+	}
+	
 	fn create_window(event_loop: &EventLoop<()>, title: &str, size: UVec2, shared_context: Option<&PossiblyCurrentContext>)
 		-> Result<(Window, Surface<WindowSurface>, PossiblyCurrentContext, glow::Context), PlatformError>
 	{
@@ -184,7 +188,7 @@ impl GraphicsPlatform for OpenGlPlatform {
 		};
 		
 		let context = OpenGlContext {
-			gl: Rc::new(gl),
+			gl: Arc::new(gl),
 			glutin: Rc::new(RefCell::new(context))
 		};
 
@@ -226,6 +230,9 @@ impl GraphicsPlatform for OpenGlPlatform {
 			PipelineKind::Default | PipelineKind::PBR => Box::new(OpenGlPBRPipeline::new(&self.context.clone(), self))
 		}
 	}
+
+	fn as_any(&self) -> &dyn std::any::Any { self }
+	fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 }
 
 // TODO a way that would make resources not a required dependency of graphics?

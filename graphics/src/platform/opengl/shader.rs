@@ -1,11 +1,11 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use glow::{HasContext, NativeShader};
 
 use crate::{error::*, platform::{GraphicsContext, opengl::{OpenGlContext, OpenGlPlatform}}, shader::{Shader, ShaderFamily}};
 
 pub struct OpenGlShader {
-	gl: Rc<glow::Context>,
+	gl: Arc<glow::Context>,
 
 	handle: Option<NativeShader>,
 	family: ShaderFamily,

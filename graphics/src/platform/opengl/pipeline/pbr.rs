@@ -1,4 +1,4 @@
-use std::{any::Any, rc::Rc};
+use std::{any::Any, rc::Rc, sync::Arc};
 
 use glam::Mat4;
 use glow::HasContext;
@@ -6,7 +6,7 @@ use glow::HasContext;
 use crate::{Camera, Color, Material, Vertex, platform::{GraphicsContext, GraphicsPlatform, opengl::{OpenGlContext, OpenGlPlatform}}, render::RenderPipeline, shader::{ShaderData, ShaderFamily, ShaderProgram}};
 
 pub struct OpenGlPBRPipeline {
-	gl: Rc<glow::Context>,
+	gl: Arc<glow::Context>,
 	program: Box<dyn ShaderProgram>,
 
 	material_data: Box<dyn ShaderData<Material>>,

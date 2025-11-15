@@ -6,13 +6,15 @@ use fatum_graphics::platform::opengl::OpenGlWindow;
 use fatum_graphics::{platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderTarget}};
 use fatum_resources::{ResourcePlatform, Resources};
 use serde::{Deserialize, Serialize};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 use winit::application::ApplicationHandler;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use winit::platform::x11::EventLoopBuilderExtX11;
 
-use crate::{Application, ApplicationInfo, GraphicsEngine, InputEngine, ResourceEngine, SceneEngine};
+use crate::{Application, ApplicationInfo, GraphicsEngine, InputEngine, ResourceEngine, SceneEngine, UiEngine};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OutputKind {
@@ -28,6 +30,7 @@ pub struct CoreEngine<P: GraphicsPlatform + ResourcePlatform, A: Application<P>>
 	resources: Arc<Mutex<ResourceEngine<P>>>,
 	scene: Rc<RefCell<SceneEngine<P>>>,
 	input: Rc<RefCell<InputEngine<P>>>,
+	ui: Option<Rc<RefCell<UiEngine<P>>>>,
 
 	pub running: bool,
 
@@ -37,6 +40,15 @@ pub struct CoreEngine<P: GraphicsPlatform + ResourcePlatform, A: Application<P>>
 
 impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone, A: Application<P> + Default {
 	pub fn new(app: Box<A>, event_loop: &EventLoop<()>) -> Self {
+		{
+			let filter = tracing_subscriber::filter::Targets::new()
+			.with_target("winit", tracing::Level::WARN); // fuck you and your debug tracing
+
+			tracing_subscriber::registry()
+				.with(filter)
+				.init();
+		}
+
 		// set up logging
 		#[cfg(debug_assertions)]
 		{
@@ -86,6 +98,7 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 			resources,
 			scene,
 			input,
+			ui: None,
 			running: false,
 			last_loop: time::Instant::now(),
 			loop_delta: time::Duration::from_secs(0)
@@ -96,6 +109,7 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 	pub fn resource_engine(&mut self) -> MutexGuard<ResourceEngine<P>> { self.resources.lock().unwrap() }
 	pub fn scene_engine(&mut self) -> RefMut<SceneEngine<P>> { self.scene.borrow_mut() }
 	pub fn input_engine(&mut self) -> RefMut<InputEngine<P>> { self.input.borrow_mut() }
+	pub fn ui_engine(&mut self) -> RefMut<UiEngine<P>> { self.ui.as_mut().unwrap().borrow_mut() }
 
 	// pub fn graphics(&mut self) -> &mut P { self.graphics_engine().get() }
 	// pub fn resources(&mut self) -> &mut Resources<P> { self.resource_engine().get() }
@@ -109,7 +123,11 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 
 // TODO this could probably be improved a lot
 impl<P, A> ApplicationHandler<()> for CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone, A: Application<P> + Default {
-	fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {}
+	fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+		if self.ui.is_none() {
+			self.ui = Some(Rc::new(RefCell::new(UiEngine::<P>::new(event_loop, self.graphics.clone(), self.scene.clone()))));
+		}
+	}
 
 	// we love ten billion for loops
 	fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
@@ -133,6 +151,8 @@ impl<P, A> ApplicationHandler<()> for CoreEngine<P, A> where P: GraphicsPlatform
 		window_id: winit::window::WindowId,
 		event: WindowEvent,
 	) {
+		self.ui_engine().on_window_event(window_id, &event);
+
 		match event {
 			WindowEvent::CloseRequested => {
 				{
@@ -174,7 +194,19 @@ impl<P, A> ApplicationHandler<()> for CoreEngine<P, A> where P: GraphicsPlatform
 				}
 
 				self.scene_engine().process(delta);
-				self.graphics_engine().process(delta);
+
+				let active = self.graphics_engine().begin(window_id);
+
+				if active {
+					self.graphics_engine().process(window_id);
+
+					if self.ui.is_some() {
+						let ui: Rc<RefCell<UiEngine<P>>> = self.ui.clone().unwrap();
+						ui.borrow_mut().process(window_id, delta);
+					}
+
+					self.graphics_engine().end(window_id);
+				}
 
 				if !self.graphics_engine().is_active() {
 					self.running = false;
