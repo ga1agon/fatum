@@ -1,6 +1,3 @@
-// mod opengl;
-// use opengl::*;
-
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -23,29 +20,6 @@ pub struct UiEngine<P: GraphicsPlatform> {
 
 impl<P> UiEngine<P> where P: GraphicsPlatform {
 	pub fn new(event_loop: &ActiveEventLoop, graphics: Rc<RefCell<GraphicsEngine<P>>>, scene: Rc<RefCell<SceneEngine<P>>>) -> Self {
-		// let mut context: dear_imgui_rs::Context;
-		// let mut glow_renderer: Option<dear_imgui_glow::GlowRenderer> = None;
-
-		// {
-		// 	let mut graphics = graphics.borrow_mut();
-		// 	let graphics = graphics.get();
-
-		// 	if let Some(ogl_platform) = graphics.as_any().downcast_ref::<OpenGlPlatform>() {
-		// 		let glow_context = ogl_platform.context().get();
-		// 		context = dear_imgui_rs::Context::create();
-
-		// 		let texture_map = Box::new(OglImGuiTextureMap::new());
-		// 		let renderer = dear_imgui_glow::GlowRenderer::with_external_context(glow_context.as_ref(), &mut context, texture_map)
-		// 			.expect("Failed to create an ImGui context for the OpenGL platform");
-
-		// 		glow_renderer = Some(renderer);
-
-		// 		log::info!("Created ImGui context for OpenGL");
-		// 	} else {
-		// 		todo!()
-		// 	}
-		// }
-
 		let mut ui_glow: Option<EguiGlow> = None;
 
 		{
@@ -124,19 +98,6 @@ impl<P> UiEngine<P> where P: GraphicsPlatform {
 		if let Some(ui) = self.ui_glow.as_mut() {
 			ui.paint(window);
 		}
-
-		// let draw_data = imgui.render();
-
-		// if let Some(renderer) = &mut self.glow_renderer {
-		// 	if let Err(e) = renderer.new_frame() {
-		// 		log::warn!("Could not create a new frame with the Glow renderer: {}", e);
-		// 	} else {
-		// 		_ = renderer.render(draw_data)
-		// 			.inspect_err(|e| log::warn!("Could not render draw data with the Glow renderer: {}", e));
-		// 	}
-		// } else {
-		// 	log::warn!("No renderer instance available to render ImGui with");
-		// }
 
 		true
 	}

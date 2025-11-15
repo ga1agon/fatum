@@ -116,18 +116,6 @@ impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
 		None
 	}
 
-	// pub fn window_mut(&mut self, id: WindowId) -> Option<&mut Box<dyn RenderWindow>> {
-	// 	if 
-	// 		let Some((queue_index, window_index)) = &self.windows.get(&id)
-	// 		&& let Some(queue) = self.queues.get_mut(queue_index)
-	// 		&& let Some(target) = queue.get_target_mut(*window_index)
-	// 	{
-	// 		return Some(target.as_any_mut().downcast_mut::<Box<dyn RenderWindow>>().unwrap());
-	// 	}
-
-	// 	None
-	// }
-
 	pub fn is_active(&self) -> bool {
 		self.queues.iter().all(|o| {
 			o.1.is_active()
