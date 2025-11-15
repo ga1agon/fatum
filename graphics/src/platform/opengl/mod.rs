@@ -7,12 +7,14 @@ mod pipeline;
 mod render_target;
 mod texture_2d;
 
-use std::{cell::RefCell, hash::Hash, rc::Rc};
-use std::any::Any;
+use std::{cell::RefCell, hash::Hash, num::NonZeroU32, rc::Rc};
+
 use bytemuck::Pod;
 use glam::{UVec2, Vec2};
 use glow::HasContext;
 
+use glutin::{config::{Api, ConfigTemplateBuilder, GlConfig}, context::{AsRawContext, ContextApi, ContextAttributesBuilder, PossiblyCurrentContext}, display::GetGlDisplay, prelude::{GlDisplay, NotCurrentGlContext}, surface::{GlSurface, Surface, SwapInterval, WindowSurface}};
+use glutin_winit::{DisplayBuilder, GlWindow};
 pub use window::*;
 pub use render_queue::*;
 pub use shader::*;
@@ -20,43 +22,18 @@ pub use shader_program::*;
 pub use shader_data::*;
 pub use render_target::*;
 pub use texture_2d::*;
+use winit::{dpi::LogicalSize, event_loop::{EventLoop, EventLoopBuilder}, platform::{x11::EventLoopBuilderExtX11}, raw_window_handle::HasRawWindowHandle, window::{Window, WindowAttributes}};
 
-use crate::{error::{ErrorKind, PlatformError}, platform::{GraphicsContext, GraphicsPlatform, opengl::pipeline::OpenGlPBRPipeline}, render::{PipelineKind, RenderPipeline, RenderTarget}, shader::*, texture, window::Window};
-use glfw::{Context, PWindow, WindowHint, WindowMode};
-
-// struct ContextWindow(Rc<PWindow>);
-
-// impl PartialEq for ContextWindow {
-// 	fn eq(&self, other: &Self) -> bool {
-// 		self.0.window_id() == other.0.window_id()
-// 	}
-// }
-
-// impl Eq for ContextWindow {}
-
-// impl Hash for ContextWindow {
-// 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-// 		self.0.window_id().hash(state);
-// 	}
-// }
-
-// impl Clone for ContextWindow {
-// 	fn clone(&self) -> Self {
-// 		Self(self.0.clone())
-// 	}
-// }
+use crate::{RenderWindow, error::{ErrorKind, PlatformError}, platform::{GraphicsContext, GraphicsPlatform, opengl::pipeline::OpenGlPBRPipeline}, render::{PipelineKind, RenderPipeline, RenderTarget}, shader::*, texture};
 
 #[derive(Clone)]
 pub struct OpenGlContext {
 	gl: Rc<glow::Context>,
-	glfw: Rc<RefCell<glfw::Glfw>>,
-
-	shared_window: Option<Rc<OpenGlWindow>>,
+	glutin: Rc<RefCell<PossiblyCurrentContext>>,
 }
 
 impl GraphicsContext<glow::Context> for OpenGlContext {
 	fn get(&self) -> Rc<glow::Context> { self.gl.clone() }
-	fn glfw(&self) -> Rc<RefCell<glfw::Glfw>> { self.glfw.clone() }
 
 	fn create_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>) -> Result<Box<dyn ShaderData<D>>, PlatformError> {
 		Ok(Box::new(OpenGlShaderData::new(&self.clone(), program, name, binding, data)?))
@@ -65,45 +42,99 @@ impl GraphicsContext<glow::Context> for OpenGlContext {
 
 #[derive(Clone)]
 pub struct OpenGlPlatform {
-	context: Rc<OpenGlContext>
+	context: Rc<OpenGlContext>,
 }
 
 impl OpenGlPlatform {
-	pub fn context(&self) -> Rc<OpenGlContext> { self.context.clone() }
+	fn create_window(event_loop: &EventLoop<()>, title: &str, size: UVec2, shared_context: Option<&PossiblyCurrentContext>)
+		-> Result<(Window, Surface<WindowSurface>, PossiblyCurrentContext, glow::Context), PlatformError>
+	{
+		let window_attributes = WindowAttributes::default()
+			.with_title(title)
+			.with_inner_size(LogicalSize::new(size.x, size.y))
+			.with_visible(false);
+
+		let template = ConfigTemplateBuilder::default()
+			.with_api(Api::OPENGL)
+			.with_transparency(true);
+
+		let (window, gl_config) = DisplayBuilder::default()
+			.with_window_attributes(Some(window_attributes))
+			.build(event_loop, template, |configs| {
+				configs.reduce(|accum, config| {
+					if config.hardware_accelerated() && !accum.hardware_accelerated() {
+						if config.num_samples() > accum.num_samples() {
+							config
+						} else {
+							accum
+						}
+					} else {
+						accum
+					}
+				}).unwrap()
+			}).map_err(|e| PlatformError::new(ErrorKind::WindowCreateError, format!("Failed to create window: {}", e).as_str()))?;
+
+		let window = window.unwrap();
+
+		let gl_display = gl_config.display();
+		let mut context_attributes = ContextAttributesBuilder::default()
+			.with_context_api(ContextApi::OpenGl(Some(glutin::context::Version {
+				major: 3,
+				minor: 3
+			})));
+		
+		{
+			if let Some(shared_context) = shared_context {
+				context_attributes = context_attributes.with_sharing(shared_context);
+			}
+			
+			#[cfg(debug_assertions)]
+			{
+				context_attributes = context_attributes.with_debug(true)
+			}
+		}
+
+		let context_attributes = context_attributes.build(Some(window.raw_window_handle().unwrap()));
+		
+		let gl_context = unsafe {
+			gl_display.create_context(&gl_config, &context_attributes)
+				.map_err(|e| PlatformError::new(ErrorKind::WindowCreateError, format!("Failed to create GL context: {}", e).as_str()))?
+		};
+
+		let surface_attributes = window.build_surface_attributes(Default::default())
+			.map_err(|e| PlatformError::new(ErrorKind::WindowCreateError, format!("Failed to build surface attributes: {}", e).as_str()))?;
+
+		let gl_surface = unsafe {
+			gl_display.create_window_surface(&gl_config, &surface_attributes)
+				.map_err(|e| PlatformError::new(ErrorKind::WindowCreateError, format!("Failed to create window surface: {}", e).as_str()))?
+		};
+
+		let gl_context = gl_context.make_current(&gl_surface)
+			.map_err(|e| PlatformError::new(ErrorKind::WindowCreateError, format!("Couldn't make context current: {}", e).as_str()))?;
+		
+		gl_surface
+			.set_swap_interval(&gl_context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))
+			.unwrap();
+
+		let gl = unsafe {
+			glow::Context::from_loader_function_cstr(|s| gl_display.get_proc_address(s))
+		};
+
+		Ok((window, gl_surface, gl_context, gl))
+	}
 }
 
 impl GraphicsPlatform for OpenGlPlatform {
-	fn new() -> Self {
-		#[cfg(debug_assertions)]
-		{
-			// force GLFW to use X11 in debug as renderdoc doesn't support wayland
-			glfw::init_hint(glfw::InitHint::Platform(glfw::Platform::X11));
-		}
+	fn id() -> super::PlatformId {
+		super::PlatformId::OpenGL
+	}
 
-		let mut glfw = glfw::init(glfw::fail_on_errors)
-			.unwrap();
-
-		glfw.window_hint(WindowHint::Visible(false));
-		glfw.window_hint(WindowHint::ContextVersion(3, 3));
-		glfw.window_hint(WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-		glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
-
-		#[cfg(debug_assertions)]
-		{
-			glfw.window_hint(WindowHint::OpenGlDebugContext(true));
-		}
-
-		let (mut window, event_receiver) = glfw.create_window(1, 1, "", WindowMode::Windowed)
-			.unwrap();
-
-		window.make_current();
-		
-		let mut render_context = window.render_context();
-		let mut gl = unsafe {
-			glow::Context::from_loader_function(|s| render_context.get_proc_address(s).unwrap() as *const _)
-		};
+	fn new(event_loop: &EventLoop<()>) -> Result<Self, PlatformError> {
+		let (root_window, _, context, mut gl) = Self::create_window(&event_loop, "", UVec2::new(512, 512), None)
+			.map_err(|e| PlatformError::new(ErrorKind::PlatformInitError, format!("Failed to create the root window: {}", e).as_str()))?;
 
 		// enable debug output
+		#[cfg(debug_assertions)]
 		unsafe {
 			gl.enable(glow::DEBUG_OUTPUT);
 			gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
@@ -152,22 +183,25 @@ impl GraphicsPlatform for OpenGlPlatform {
 			);
 		};
 		
-		let mut context = OpenGlContext {
+		let context = OpenGlContext {
 			gl: Rc::new(gl),
-			glfw: Rc::new(RefCell::new(glfw)),
-			shared_window: None,
+			glutin: Rc::new(RefCell::new(context))
 		};
 
-		let base_window = Rc::new(OpenGlWindow::from_impl(Rc::new(context.clone()), window, event_receiver, ""));
-		context.shared_window = Some(base_window);
-
-		Self {
+		Ok(Self {
 			context: Rc::new(context)
-		}
+		})
 	}
 
-	fn create_window(&mut self, title: &str, size: UVec2) -> Result<Box<dyn Window>, PlatformError> {
-		let window = OpenGlWindow::new(self.context.clone(), title, size, &self.context.shared_window.as_ref().unwrap())?;
+	fn create_window(&mut self, event_loop: &EventLoop<()>, title: &str, size: UVec2) -> Result<Box<dyn RenderWindow>, PlatformError> {
+		let (window, surface, _, _) = Self::create_window(
+			event_loop,
+			title,
+			size,
+			Some(&*self.context.glutin.borrow())
+		)?;
+
+		let window = OpenGlWindow::new(self.context.clone(), window, surface);
 		Ok(Box::new(window))
 	}
 	
@@ -192,8 +226,6 @@ impl GraphicsPlatform for OpenGlPlatform {
 			PipelineKind::Default | PipelineKind::PBR => Box::new(OpenGlPBRPipeline::new(&self.context.clone(), self))
 		}
 	}
-
-	fn as_any(&self) -> &dyn Any { self }
 }
 
 // TODO a way that would make resources not a required dependency of graphics?

@@ -1,8 +1,9 @@
 use std::{cell::RefCell, path::{Path, PathBuf}, rc::Rc, str::FromStr};
 
-use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, input::{ActionMap, InputAction, InputCombo, InputMap, Key, MouseButton, MouseScrollWheel}, resources::{ResActionMap, ResText, ResTexture2D}};
-use fatum_graphics::{Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
+use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, input::{ActionMap, InputAction, InputCombo, InputMap, MouseScroll}, resources::{ResActionMap, ResText, ResTexture2D}};
+use fatum_graphics::{platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
+use winit::{event::MouseButton, event_loop::{ControlFlow, EventLoop}, keyboard::KeyCode, platform::x11::EventLoopBuilderExtX11};
 
 struct DefaultActionMap {}
 impl DefaultActionMap {
@@ -11,16 +12,16 @@ impl DefaultActionMap {
 
 		// TODO does this need to be Rc<RefCell<>>?
 		let action1 = InputAction::new("One");
-		action_map.insert(vec![InputCombo::with_keys(vec![Key::A])], action1);
+		action_map.insert(vec![InputCombo::with_keys(vec![KeyCode::KeyA])], action1);
 
 		let action2 = InputAction::new("Two");
-		action_map.insert(vec![InputCombo::with_keys(vec![Key::LeftControl, Key::D])], action2);
+		action_map.insert(vec![InputCombo::with_keys(vec![KeyCode::ControlLeft, KeyCode::KeyD])], action2);
 
 		let action3 = InputAction::new("Three");
 		action_map.insert(vec![InputCombo::with_mouse_buttons(vec![MouseButton::Left])], action3);
 
 		let action4 = InputAction::new("Four");
-		action_map.insert(vec![InputCombo::with_mouse_scroll_wheel(MouseScrollWheel::Down)], action4);
+		action_map.insert(vec![InputCombo::with_mouse_scroll_wheel(MouseScroll::Down)], action4);
 
 		action_map
 	}
@@ -38,8 +39,9 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for BasicApp
 		}
 	}
 
-	fn setup(&mut self, engine: &mut CoreEngine<P, Self>) where Self: Sized {
-		engine.graphics_engine().create_output(0, PipelineKind::Default, OutputKind::Window);
+	fn setup(&mut self, engine: &mut CoreEngine<P, Self>, event_loop: &EventLoop<()>) where Self: Sized {
+		engine.graphics_engine().create_queue(0, PipelineKind::Default);
+		engine.graphics_engine().create_output(0, event_loop, OutputKind::Window);
 
 		let action_map = engine.resource_engine().get().load_or_create(
 			"input_test.actionmap",
@@ -90,9 +92,11 @@ impl<P: GraphicsPlatform + ResourcePlatform> Default for BasicApplication<P> {
 fn basic_application() {
 	fatum::build::link_test_assets();
 
-	let app = Box::new(BasicApplication::<OpenGlPlatform>::default());
-	let mut engine = CoreEngine::<OpenGlPlatform, BasicApplication::<OpenGlPlatform>>::new(app);
+	let event_loop = EventLoop::builder().with_any_thread(true).build().unwrap();
 
-	engine.setup();
-	engine.run();
+	let app = Box::new(BasicApplication::<OpenGlPlatform>::default());
+	let mut engine = CoreEngine::<OpenGlPlatform, BasicApplication::<OpenGlPlatform>>::new(app, &event_loop);
+
+	engine.setup(&event_loop);
+	event_loop.run_app(&mut engine).unwrap();
 }

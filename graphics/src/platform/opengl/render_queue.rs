@@ -1,8 +1,7 @@
 use glam::Mat4;
-use glfw::{Context, PWindow};
 use glow::{HasContext, NativeBuffer, NativeTexture, NativeVertexArray};
 
-use crate::{Camera, Model, Rf, Vertex, platform::{GraphicsContext, opengl::{OpenGlContext, OpenGlWindow}}, render::*};
+use crate::{Camera, Model, Rf, Vertex, platform::{GraphicsContext, opengl::{OpenGlContext}}, render::*};
 use std::{cell::RefCell, collections::HashMap, hash::Hash, num::{NonZero, NonZeroU32}, rc::Rc, sync::atomic::{AtomicUsize, Ordering}, time};
 
 struct ObjectData {
@@ -62,7 +61,7 @@ impl OpenGlRenderQueue {
 impl RenderQueue for OpenGlRenderQueue {
 	fn process(&mut self) {
 		if self.pipeline.is_none() {
-			return
+			return;
 		}
 
 		let now = time::Instant::now();

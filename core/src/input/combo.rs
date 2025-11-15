@@ -1,23 +1,24 @@
 use std::hash::Hash;
 
 use serde::{Deserialize, Serialize};
+use winit::{event::MouseButton, keyboard::KeyCode};
 
-use crate::input::{Key, MouseButton, MouseScrollWheel};
+use crate::input::{MouseScroll};
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct InputCombo {
-	pub keys: Option<Vec<Key>>,
+	pub keys: Option<Vec<KeyCode>>,
 	pub mouse_buttons: Option<Vec<MouseButton>>,
-	pub mouse_scroll_wheel: Option<MouseScrollWheel>,
+	pub mouse_scroll_wheel: Option<MouseScroll>,
 
 	pub strict: bool
 }
 
 impl InputCombo {
 	pub fn new(
-		keys: Option<Vec<Key>>,
+		keys: Option<Vec<KeyCode>>,
 		mouse_buttons: Option<Vec<MouseButton>>,
-		mouse_scroll_wheel: Option<MouseScrollWheel>
+		mouse_scroll_wheel: Option<MouseScroll>
 	) -> Self {
 		let strict = if keys.as_ref().is_some_and(|v| v.len() > 1) { true } else { false };
 
@@ -29,7 +30,7 @@ impl InputCombo {
 		}
 	}
 
-	pub fn with_keys(keys: Vec<Key>) -> Self {
+	pub fn with_keys(keys: Vec<KeyCode>) -> Self {
 		Self::new(Some(keys), None, None)
 	}
 
@@ -37,7 +38,7 @@ impl InputCombo {
 		Self::new(None, Some(mouse_buttons), None)
 	}
 
-	pub fn with_mouse_scroll_wheel(mouse_scroll_wheel: MouseScrollWheel) -> Self {
+	pub fn with_mouse_scroll_wheel(mouse_scroll_wheel: MouseScroll) -> Self {
 		Self::new(None, None, Some(mouse_scroll_wheel))
 	}
 }

@@ -1,8 +1,9 @@
 use std::{cell::{Ref, RefCell}, collections::HashMap, fmt::Debug, rc::Rc};
 
 use fatum_resources::ResourceRef;
+use winit::{event::MouseButton, keyboard::KeyCode};
 
-use crate::{input::{ActionMap, Input, InputAction, Key, MouseButton, MouseScrollWheel}, resources::ResActionMap};
+use crate::{input::{ActionMap, Input, InputAction, MouseScroll}, resources::ResActionMap};
 
 #[derive(Clone)]
 pub struct InputMap {
@@ -10,9 +11,9 @@ pub struct InputMap {
 	action_map: ResourceRef<ResActionMap>,
 	actions: HashMap<String, Rc<RefCell<InputAction>>>,
 
-	current_key_combo: Rc<RefCell<Vec<Key>>>,
+	current_key_combo: Rc<RefCell<Vec<KeyCode>>>,
 	current_mouse_button_combo: Rc<RefCell<Vec<MouseButton>>>,
-	current_scroll_wheel: Rc<RefCell<MouseScrollWheel>>
+	current_scroll_wheel: Rc<RefCell<MouseScroll>>
 }
 
 impl InputMap {
@@ -36,28 +37,28 @@ impl InputMap {
 			actions,
 			current_key_combo: Rc::new(RefCell::new(Vec::new())),
 			current_mouse_button_combo: Rc::new(RefCell::new(Vec::new())),
-			current_scroll_wheel: Rc::new(RefCell::new(MouseScrollWheel::None))
+			current_scroll_wheel: Rc::new(RefCell::new(MouseScroll::None))
 		};
 
 		// warning: extremely ugly
 		let ckc1 = this.current_key_combo.clone();
 		this.input.borrow_mut().key_up.connect(move |args| {
-			ckc1.borrow_mut().retain(|v| *v != args.0);
+			ckc1.borrow_mut().retain(|v| *v != *args);
 		});
 
 		let ckc2 = this.current_key_combo.clone();
 		this.input.borrow_mut().key_down.connect(move |args| {
-			ckc2.borrow_mut().push(args.0);
+			ckc2.borrow_mut().push(*args);
 		});
 
 		let cmbc1 = this.current_mouse_button_combo.clone();
 		this.input.borrow_mut().mouse_button_up.connect(move |args| {
-			cmbc1.borrow_mut().retain(|v| *v != args.0);
+			cmbc1.borrow_mut().retain(|v| *v != *args);
 		});
 
 		let cmbc2 = this.current_mouse_button_combo.clone();
 		this.input.borrow_mut().mouse_button_down.connect(move |args| {
-			cmbc2.borrow_mut().push(args.0);
+			cmbc2.borrow_mut().push(*args);
 		});
 
 		let csw1 = this.current_scroll_wheel.clone();
@@ -136,7 +137,7 @@ impl InputMap {
 			}
 		}
 
-		*self.current_scroll_wheel.borrow_mut() = MouseScrollWheel::None;
+		*self.current_scroll_wheel.borrow_mut() = MouseScroll::None;
 	}
 
 	pub fn action(&self, name: &str) -> Option<Rc<RefCell<InputAction>>> {

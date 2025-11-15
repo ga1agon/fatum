@@ -1,55 +1,40 @@
-use std::{cell::RefCell, rc::Rc, hash::Hash};
+use std::{cell::RefCell, hash::Hash, num::NonZeroU32, rc::Rc};
 
 use glam::UVec2;
-use glfw::{Context, PWindow, WindowHint, WindowMode};
 use glow::HasContext;
+use glutin::{api::egl::config, config::{Api, ConfigTemplateBuilder, GlConfig}, context::{ContextApi, ContextAttributesBuilder, PossiblyCurrentContext}, display::GetGlDisplay, prelude::{GlDisplay, NotCurrentGlContext, PossiblyCurrentGlContext}, surface::{GlSurface, Surface, SwapInterval, WindowSurface}};
+use glutin_winit::{DisplayBuilder, GlWindow};
+use winit::{dpi::LogicalSize, platform::x11::EventLoopBuilderExtX11, raw_window_handle::HasRawWindowHandle, window::WindowAttributes};
 
-use crate::{error::{ErrorKind, PlatformError}, platform::{GraphicsContext, opengl::{OpenGlContext, RenderTargetResources}}, render::RenderTarget, window::Window};
+use crate::{RenderWindow, error::{ErrorKind, PlatformError}, platform::{GraphicsContext, opengl::{OpenGlContext, RenderTargetResources}}, render::RenderTarget};
 
 pub struct OpenGlWindow {
 	context: Rc<OpenGlContext>,
-	pub window_impl: glfw::PWindow,
-	pub event_receiver: glfw::GlfwReceiver<(f64, glfw::WindowEvent)>,
+	wimpl: winit::window::Window,
+	active: bool,
 
-	title: String,
+	pub gl: Rc<glow::Context>,
+	pub gl_context: Rc<RefCell<PossiblyCurrentContext>>,
+	pub gl_surface: Surface<WindowSurface>,
 
 	resources: RenderTargetResources,
 }
 
 impl OpenGlWindow {
-	pub fn new(context: Rc<OpenGlContext>, title: &str, size: UVec2, shared_window: &OpenGlWindow) -> Result<Self, PlatformError> {
-		// let mut m_glfw = glfw.borrow_mut();
-
-		// m_glfw.window_hint(WindowHint::Visible(false));
-		// m_glfw.window_hint(WindowHint::ContextVersion(3, 3));
-		// m_glfw.window_hint(WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-		// m_glfw.window_hint(WindowHint::OpenGlForwardCompat(true));
-
-		let (mut window_impl, event_receiver) = shared_window.window_impl.create_shared(size.x, size.y, title, WindowMode::Windowed)
-			.ok_or(PlatformError::new(ErrorKind::WindowCreateError, "Failed to create GLFW window"))?;
-
-		window_impl.make_current();
-
-		Ok(Self {
-			context,
-			window_impl,
-			event_receiver,
-			title: title.to_string(),
-			resources: RenderTargetResources::new()
-		})
-	}
-
-	pub fn from_impl(
+	pub fn new(
 		context: Rc<OpenGlContext>,
-		window_impl: glfw::PWindow,
-		event_receiver: glfw::GlfwReceiver<(f64, glfw::WindowEvent)>,
-		title: &str,
+		wimpl: winit::window::Window,
+		gl_surface: Surface<WindowSurface>
 	) -> Self {
+		let context = context.clone();
+		
 		Self {
-			context,
-			window_impl,
-			event_receiver,
-			title: title.to_string(),
+			context: context.clone(),
+			active: false,
+			wimpl,
+			gl: context.gl.clone(),
+			gl_context: context.glutin.clone(),
+			gl_surface,
 			resources: RenderTargetResources::new()
 		}
 	}
@@ -58,28 +43,19 @@ impl OpenGlWindow {
 	pub fn resources_mut(&mut self) -> &mut RenderTargetResources { &mut self.resources }
 }
 
-impl Window for OpenGlWindow {
-	fn title(&self) -> &str { &self.title }
-	fn set_title(&mut self, title: &str) { self.title = title.to_string() }
-
-	fn show(&mut self) {
-		self.window_impl.show();
+impl RenderWindow for OpenGlWindow {
+	fn wimpl(&self) -> &winit::window::Window {
+		&self.wimpl
 	}
 
-	fn hide(&mut self) {
-		self.window_impl.hide();
-	}
-
-	fn close(self) { }
-
-	fn should_close(&self) -> bool {
-		self.window_impl.should_close()
+	fn wimpl_mut(&mut self) -> &mut winit::window::Window {
+		&mut self.wimpl
 	}
 }
 
 impl RenderTarget for OpenGlWindow {
 	fn begin(&mut self) {
-		self.window_impl.make_current();
+		self.gl_context.borrow_mut().make_current(&self.gl_surface).unwrap();
 
 		let gl = self.context.get();
 		
@@ -90,16 +66,15 @@ impl RenderTarget for OpenGlWindow {
 	}
 
 	fn end(&mut self) {
-		self.window_impl.swap_buffers();
-		self.context.glfw().borrow_mut().poll_events();
+		self.gl_surface.swap_buffers(&*self.gl_context.borrow()).unwrap();
 	}
 
 	fn size(&self) -> UVec2 {
-		let size = self.window_impl.get_size();
+		let size = self.wimpl.inner_size();
 
 		UVec2 {
-			x: size.0 as u32,
-			y: size.1 as u32
+			x: size.width,
+			y: size.height
 		}
 	}
 
@@ -108,11 +83,11 @@ impl RenderTarget for OpenGlWindow {
 	// }
 
 	fn is_active(&self) -> bool {
-		!self.should_close()
+		self.active
 	}
 
 	fn set_active(&mut self, active: bool) {
-		self.window_impl.set_should_close(!active);
+		self.active = active
 	}
 
 	fn as_any(&self) -> &dyn std::any::Any { self }
@@ -121,7 +96,7 @@ impl RenderTarget for OpenGlWindow {
 
 impl PartialEq for OpenGlWindow {
 	fn eq(&self, other: &Self) -> bool {
-		self.window_impl.window_id() == other.window_impl.window_id()
+		self.wimpl.id() == other.wimpl.id()
 	}
 }
 
@@ -129,6 +104,6 @@ impl Eq for OpenGlWindow {}
 
 impl Hash for OpenGlWindow {
 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-		self.window_impl.window_id().hash(state);
+		self.wimpl.id().hash(state);
 	}
 }

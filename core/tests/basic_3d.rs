@@ -1,11 +1,12 @@
 use std::{path::{Path, PathBuf}, rc::Rc, str::FromStr};
 
 use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::{Transform2D, Transform3D}, nodes::{Camera3D, Model3D}, resources::{ResText, ResTexture2D}};
-use fatum_graphics::{Color, Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
+use fatum_graphics::{Color, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
 use fatum_scene::{Node, NodeId, SceneGraph};
 use fatum_signals::SignalDispatcher;
 use glam::{EulerRot, UVec2, Vec2, Vec3};
+use winit::{event_loop::EventLoop, platform::x11::EventLoopBuilderExtX11};
 
 struct Basic3DApplication<P: GraphicsPlatform + ResourcePlatform> {
 	_marker: std::marker::PhantomData<P>
@@ -18,8 +19,9 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for Basic3DA
 		}
 	}
 
-	fn setup(&mut self, engine: &mut CoreEngine<P, Self>) where Self: Sized {
-		engine.graphics_engine().create_output(0, PipelineKind::Default, OutputKind::Window);
+	fn setup(&mut self, engine: &mut CoreEngine<P, Self>, event_loop: &EventLoop<()>) where Self: Sized {
+		engine.graphics_engine().create_queue(0, PipelineKind::Default);
+		engine.graphics_engine().create_output(0, event_loop, OutputKind::Window);
 
 		let scene = SceneGraph::new();
 		
@@ -94,9 +96,11 @@ impl<P: GraphicsPlatform + ResourcePlatform> Default for Basic3DApplication<P> {
 fn opengl_basic_3d() {
 	fatum::build::link_test_assets();
 
-	let app = Box::new(Basic3DApplication::<OpenGlPlatform>::default());
-	let mut engine = CoreEngine::<OpenGlPlatform, Basic3DApplication::<OpenGlPlatform>>::new(app);
+	let event_loop = EventLoop::builder().with_any_thread(true).build().unwrap();
 
-	engine.setup();
-	engine.run();
+	let app = Box::new(Basic3DApplication::<OpenGlPlatform>::default());
+	let mut engine = CoreEngine::<OpenGlPlatform, Basic3DApplication::<OpenGlPlatform>>::new(app, &event_loop);
+
+	engine.setup(&event_loop);
+	event_loop.run_app(&mut engine).unwrap();
 }
