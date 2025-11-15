@@ -5,7 +5,6 @@ use fatum_macros::node_impl_new;
 use fatum_resources::ResourceRef;
 use fatum_scene::{Node, NodeComponent, NodeId, SceneGraph, SharedSceneGraph};
 use glam::{Vec2, Vec3};
-use lazy_static::lazy_static;
 use static_init::dynamic;
 use crate::{components::{self, Transform2D}, resources::ResTexture2D};
 
@@ -28,7 +27,7 @@ static UNIT_QUAD: Model = Model {
 	]
 };
 
-#[derive(NodeComponent)]
+#[derive(NodeComponent, Clone)]
 pub struct Sprite {
 	owner: NodeId,
 	scene: Option<SharedSceneGraph>,

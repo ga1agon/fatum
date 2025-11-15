@@ -2,6 +2,8 @@ use fatum_scene::{NodeComponent, NodeId, SceneGraph, SharedSceneGraph};
 use glam::{EulerRot, Mat4, Quat, Vec2, Vec3, Vec4};
 use std::{fmt::Debug, sync::{Arc, Mutex}};
 
+use crate::helpers;
+
 pub trait Transform {
 	fn calculate_matrix(&self) -> Mat4;
 
@@ -68,6 +70,11 @@ impl Transform3D {
 			scale: Vec3::ONE,
 			dirty: true
 		}
+	}
+
+	pub fn from_mat4(matrix: Mat4) -> Self {
+		let (translation, rotation, scale) = helpers::mat4_decompose(matrix);
+		Self::new(translation, rotation, scale)
 	}
 
 	pub fn translate(&mut self, translation: Vec3) {
