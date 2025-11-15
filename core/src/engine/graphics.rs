@@ -1,8 +1,8 @@
-use std::{collections::HashMap, rc::Rc, sync::Arc};
+use std::{collections::HashMap, io::pipe, rc::Rc, sync::Arc};
 
-use fatum_graphics::{platform::GraphicsPlatform, render::{PipelineKind, RenderQueue, RenderTarget}};
+use fatum_graphics::{RenderWindow, platform::{GraphicsPlatform, PlatformId, opengl::OpenGlWindow}, render::{PipelineKind, RenderQueue, RenderTarget}};
 use glam::UVec2;
-use winit::event_loop::EventLoop;
+use winit::{event_loop::EventLoop, window::WindowId};
 
 use crate::{ApplicationInfo, CoreEngine, OutputKind};
 
@@ -10,7 +10,8 @@ pub struct GraphicsEngine<P: GraphicsPlatform> {
 	app_info: ApplicationInfo,
 	platform: P,
 
-	outputs: HashMap<usize, Box<dyn RenderQueue>>,
+	queues: HashMap<usize, Box<dyn RenderQueue>>,
+	windows: HashMap<WindowId, (usize, usize)>,
 }
 
 impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
@@ -21,58 +22,76 @@ impl<P> GraphicsEngine<P> where P: GraphicsPlatform {
 		Self {
 			app_info,
 			platform,
-			outputs: HashMap::new()
+			queues: HashMap::new(),
+			windows: HashMap::new()
 		}
 	}
 
 	pub fn get(&mut self) -> &mut P { &mut self.platform }
 
-	pub fn create_output(&mut self, event_loop: &EventLoop<()>, index: usize, pipeline_kind: PipelineKind, output_kind: OutputKind) -> usize {
-		log::info!("Creating output {} for {:?}", index, pipeline_kind);
+	pub fn create_queue(&mut self, index: usize, pipeline_kind: PipelineKind) {
+		log::info!("Creating output {} ({:?})", index, pipeline_kind);
+		assert!(!self.queues.contains_key(&index));
 
-		// this portion is so messy
-		let mut output = self.outputs.get_mut(&index);
-		let queue: &mut Box<dyn RenderQueue>;
+		let mut queue = self.platform.create_queue();
+		let pipeline = self.platform.create_pipeline(pipeline_kind);
 
-		if let Some(output) = output {
-			queue = output;
-		} else {
-			self.outputs.insert(index, self.platform.create_queue());
-			output = self.outputs.get_mut(&index);
-			queue = output.unwrap();
+		queue.set_pipeline(Some(pipeline));
 
-			queue.set_pipeline(Some(self.platform.create_pipeline(pipeline_kind)));
-		}
+		self.queues.insert(index, queue);
+	}
 
-		let target: Box<dyn RenderTarget> = match output_kind {
+	pub fn create_output(&mut self, queue_index: usize, event_loop: &EventLoop<()>, kind: OutputKind) -> usize {
+		log::info!("Creating {:?} output for queue {}", kind, queue_index);
+		assert!(self.queues.contains_key(&queue_index));
+
+		let queue = self.queues.get_mut(&queue_index).unwrap();
+
+		match kind {
 			OutputKind::Window => {
-				let mut window = self.platform.create_window(event_loop, format!("{} ({})", self.app_info.name, index).as_str(), UVec2::new(1024, 768)).unwrap();
+				let mut window = self.platform.create_window(event_loop, format!("{} ({})", self.app_info.name, queue_index).as_str(), UVec2::new(1024, 768)).unwrap();
 				window.show();
-				window
+				window.begin();
+
+				let window_id = window.wimpl().id();
+
+				let target_id = queue.add_target(window);
+				self.windows.insert(window_id, (queue_index, target_id));
+
+				return target_id;
 			},
 			_ => todo!()
 		};
-
-		let queue_target = queue.add_target(target);
-		queue_target
 	}
 
-	pub fn output(&mut self, index: usize) -> Option<&mut Box<dyn RenderQueue>> {
-		self.outputs.get_mut(&index)
+	pub fn queue(&mut self, index: usize) -> Option<&mut Box<dyn RenderQueue>> {
+		self.queues.get_mut(&index)
 	}
 
-	pub fn outputs(&mut self) -> &mut HashMap<usize, Box<dyn RenderQueue>> {
-		&mut self.outputs
+	pub fn queues(&mut self) -> &mut HashMap<usize, Box<dyn RenderQueue>> {
+		&mut self.queues
+	}
+
+	pub fn window(&mut self, id: WindowId) -> Option<&mut Box<dyn RenderWindow>> {
+		if 
+			let Some((queue_index, window_index)) = &self.windows.get(&id)
+			&& let Some(queue) = self.queues.get_mut(queue_index)
+			&& let Some(target) = queue.get_target_mut(*window_index)
+		{
+			return Some(target.as_any_mut().downcast_mut::<Box<dyn RenderWindow>>().unwrap());
+		}
+
+		None
 	}
 
 	pub fn is_active(&self) -> bool {
-		self.outputs.iter().all(|o| {
+		self.queues.iter().all(|o| {
 			o.1.is_active()
 		})
 	}
 
 	pub fn process(&mut self, _: std::time::Duration) {
-		for (_, queue) in &mut self.outputs {
+		for (_, queue) in &mut self.queues {
 			if !queue.is_active() {
 				continue;
 			}

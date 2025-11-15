@@ -5,6 +5,7 @@ use fatum_graphics::RenderWindow;
 use fatum_graphics::platform::opengl::OpenGlWindow;
 use fatum_graphics::{platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderTarget}};
 use fatum_resources::{ResourcePlatform, Resources};
+use serde::{Deserialize, Serialize};
 use winit::application::ApplicationHandler;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
@@ -13,6 +14,7 @@ use winit::platform::x11::EventLoopBuilderExtX11;
 
 use crate::{Application, ApplicationInfo, GraphicsEngine, InputEngine, ResourceEngine, SceneEngine};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OutputKind {
 	Window
 }
@@ -103,20 +105,9 @@ impl<P, A> CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone
 		app.setup(self, event_loop);
 		self.app = app;
 	}
-
-	// pub fn run(mut self, event_loop: &EventLoop<()>) {
-	// 	self.running = true;
-
-	// 	// this is FUCKING AWESOME
-	// 	// let event_loop = Rc::clone(&self.event_loop);
-	// 	// //let event_loop = std::mem::replace(&mut self.event_loop, unsafe { std::mem::zeroed() });
-	// 	// event_loop.run_app(&mut self);
-	// 	//self.event_loop = event_loop;
-
-	// 	event_loop.run_app(&mut self);
-	// }
 }
 
+// TODO this could probably be improved a lot
 impl<P, A> ApplicationHandler<()> for CoreEngine<P, A> where P: GraphicsPlatform + ResourcePlatform + Clone, A: Application<P> + Default {
 	fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {}
 
@@ -124,7 +115,7 @@ impl<P, A> ApplicationHandler<()> for CoreEngine<P, A> where P: GraphicsPlatform
 	fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
 		let mut graphics = self.graphics_engine();
 
-		for (_, queue) in graphics.outputs() {
+		for (_, queue) in graphics.queues() {
 			for target in queue.targets() {
 				let target = queue.get_target_mut(target).unwrap();
 				
@@ -147,7 +138,7 @@ impl<P, A> ApplicationHandler<()> for CoreEngine<P, A> where P: GraphicsPlatform
 				{
 					let mut graphics = self.graphics_engine();
 
-					for (_, queue) in graphics.outputs() {
+					for (_, queue) in graphics.queues() {
 						for target in queue.targets() {
 							let target = queue.get_target_mut(target).unwrap();
 							

@@ -26,28 +26,6 @@ use winit::{dpi::LogicalSize, event_loop::{EventLoop, EventLoopBuilder}, platfor
 
 use crate::{RenderWindow, error::{ErrorKind, PlatformError}, platform::{GraphicsContext, GraphicsPlatform, opengl::pipeline::OpenGlPBRPipeline}, render::{PipelineKind, RenderPipeline, RenderTarget}, shader::*, texture};
 
-// struct ContextWindow(Rc<PWindow>);
-
-// impl PartialEq for ContextWindow {
-// 	fn eq(&self, other: &Self) -> bool {
-// 		self.0.window_id() == other.0.window_id()
-// 	}
-// }
-
-// impl Eq for ContextWindow {}
-
-// impl Hash for ContextWindow {
-// 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-// 		self.0.window_id().hash(state);
-// 	}
-// }
-
-// impl Clone for ContextWindow {
-// 	fn clone(&self) -> Self {
-// 		Self(self.0.clone())
-// 	}
-// }
-
 #[derive(Clone)]
 pub struct OpenGlContext {
 	gl: Rc<glow::Context>,
@@ -147,6 +125,10 @@ impl OpenGlPlatform {
 }
 
 impl GraphicsPlatform for OpenGlPlatform {
+	fn id() -> super::PlatformId {
+		super::PlatformId::OpenGL
+	}
+
 	fn new(event_loop: &EventLoop<()>) -> Result<Self, PlatformError> {
 		let (root_window, _, context, mut gl) = Self::create_window(&event_loop, "", UVec2::new(512, 512), None)
 			.map_err(|e| PlatformError::new(ErrorKind::PlatformInitError, format!("Failed to create the root window: {}", e).as_str()))?;
@@ -210,12 +192,6 @@ impl GraphicsPlatform for OpenGlPlatform {
 			context: Rc::new(context)
 		})
 	}
-
-	// fn event_loop(&self) -> Rc<RefCell<EventLoop<()>>> {
-	// 	self.context.event_loop.clone()
-	// }
-
-	//fn context(&self) -> Rc<OpenGlContext> { self.context.clone() }
 
 	fn create_window(&mut self, event_loop: &EventLoop<()>, title: &str, size: UVec2) -> Result<Box<dyn RenderWindow>, PlatformError> {
 		let (window, surface, _, _) = Self::create_window(

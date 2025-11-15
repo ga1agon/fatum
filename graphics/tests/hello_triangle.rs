@@ -51,13 +51,6 @@ fn opengl_hello_triangle() {
 
 	queue.pipeline_mut().unwrap().camera_data().set_data(vec![camera.create()].into());
 
-	queue.add_command(|delta| {
-		//println!("Delta time: {}", delta.as_secs_f32() * 1000.0);
-	});
-
-	// while queue.is_active() {
-	// 	queue.process();
-	// }
 	let _ = event_loop.run(move |event: Event<()>, event_loop| {
 		if let Event::WindowEvent { event, .. } = event {
 			match event {

@@ -40,7 +40,8 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for BasicApp
 	}
 
 	fn setup(&mut self, engine: &mut CoreEngine<P, Self>, event_loop: &EventLoop<()>) where Self: Sized {
-		engine.graphics_engine().create_output(event_loop, 0, PipelineKind::Default, OutputKind::Window);
+		engine.graphics_engine().create_queue(0, PipelineKind::Default);
+		engine.graphics_engine().create_output(0, event_loop, OutputKind::Window);
 
 		let action_map = engine.resource_engine().get().load_or_create(
 			"input_test.actionmap",
@@ -92,7 +93,6 @@ fn basic_application() {
 	fatum::build::link_test_assets();
 
 	let event_loop = EventLoop::builder().with_any_thread(true).build().unwrap();
-	event_loop.set_control_flow(ControlFlow::Poll);
 
 	let app = Box::new(BasicApplication::<OpenGlPlatform>::default());
 	let mut engine = CoreEngine::<OpenGlPlatform, BasicApplication::<OpenGlPlatform>>::new(app, &event_loop);

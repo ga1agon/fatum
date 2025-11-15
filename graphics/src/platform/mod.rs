@@ -7,6 +7,11 @@ use bytemuck::Pod;
 use glam::UVec2;
 use winit::{event_loop::EventLoop, window::Window};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlatformId {
+	OpenGL,
+}
+
 pub trait GraphicsContext<T> {
 	fn get(&self) -> Rc<T>;
 
@@ -18,9 +23,9 @@ pub trait GraphicsPlatform
 // <T1, T2>
 // 	where T1: GraphicsContext<T2>
 {
+	fn id() -> PlatformId;
 	fn new(event_loop: &EventLoop<()>) -> Result<Self, PlatformError> where Self: Sized;
 
-	//fn event_loop(&self) -> Rc<RefCell<EventLoop<()>>>;
 	//fn context(&self) -> Rc<T1>;
 
 	fn create_window(&mut self, event_loop: &EventLoop<()>, title: &str, size: UVec2) -> Result<Box<dyn RenderWindow>, PlatformError>;
@@ -28,9 +33,6 @@ pub trait GraphicsPlatform
 
 	fn create_shader(&self, family: ShaderFamily, source: &str) -> Box<dyn Shader>;
 	fn create_shader_program(&self, shaders: Vec<Box<dyn Shader>>) -> Box<dyn ShaderProgram>;
-	
-	//fn create_array_shader_data<D: Pod>(&self, program: &Box<dyn ShaderProgram>, name: &str, binding: u32, data: Option<Rc<Vec<D>>>)
-	//	-> Result<Box<dyn ShaderData<Vec<D>>>, PlatformError>;
 
 	fn create_texture_2d(&self, image: image::DynamicImage, options: texture::Options) -> Result<Box<dyn Texture2D>, PlatformError>;
 

@@ -33,7 +33,7 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 
 		let mut graphics = self.graphics.borrow_mut();
 
-		let queue = graphics.output(output_index)?;
+		let queue = graphics.queue(output_index)?;
 
 		{
 			let nodes: Vec<u32> = ScenePostDfsIterator::new(scene.clone(), Default::default())
@@ -116,7 +116,7 @@ impl<P> SceneEngine<P> where P: GraphicsPlatform {
 
 	pub fn process(&mut self, delta: std::time::Duration) -> bool {
 		for (output, scene) in &self.scenes {
-			if let Some(queue) = self.graphics.borrow_mut().output(*output) {
+			if let Some(queue) = self.graphics.borrow_mut().queue(*output) {
 				let nodes: Vec<u32> = SceneDfsIterator::new(scene.clone(), Default::default())
 					.collect();
 

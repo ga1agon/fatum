@@ -1,20 +1,9 @@
 use fatum_signals::StaticSignal;
 use glam::Vec2;
-use num_enum::{FromPrimitive, IntoPrimitive};
 use winit::{event::MouseButton, keyboard::{Key, KeyCode}, window::CursorGrabMode};
 
 use crate::input::MouseScroll;
 
-// #[repr(i32)]
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, IntoPrimitive, Hash, Default)]
-// pub enum CursorMode {
-// 	#[default]
-// 	Normal = glfw::ffi::GLFW_CURSOR_NORMAL,
-// 	Hidden = glfw::ffi::GLFW_CURSOR_HIDDEN,
-// 	Disabled = glfw::ffi::GLFW_CURSOR_DISABLED,
-// }
-
-// TODO scroll & move move (mouse_position() fn)
 pub struct Input {
 	pub key_up: StaticSignal<KeyCode>,
 	pub key_down: StaticSignal<KeyCode>,

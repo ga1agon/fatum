@@ -1,19 +1,23 @@
 use fatum::resources::{MetaTexture2D, ResTexture2D};
-use fatum_graphics::{Camera2D, Color, Material, Mesh, Model, Vertex, Window, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderObject, RenderPipeline}, texture};
+use fatum_graphics::{Camera2D, Color, Material, Mesh, Model, Vertex, platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::{PipelineKind, RenderObject, RenderPipeline}, texture};
 use fatum_resources::Resources;
 use glam::{EulerRot, Mat4, Quat, UVec2, Vec2, Vec3};
 use simple_logger::SimpleLogger;
+use winit::{event::{Event, WindowEvent}, event_loop::EventLoop, platform::x11::EventLoopBuilderExtX11};
 use std::{fs::File, path::Path, rc::Rc, *};
 
 #[test]
 fn opengl_textures() {
 	SimpleLogger::new().init().unwrap();
 
-	let mut platform = OpenGlPlatform::new();
-	let mut window = platform.create_window("Resources", UVec2::new(800, 600))
+	let event_loop = EventLoop::builder().with_any_thread(true).build().unwrap();
+
+	let mut platform = OpenGlPlatform::new(&event_loop).unwrap();
+	let mut window = platform.create_window(&event_loop, "Resources", UVec2::new(800, 600))
 		.unwrap();
 
 	window.show();
+	window.begin();
 
 	let mut queue = platform.create_queue();
 	let window = queue.add_target(window);
@@ -68,7 +72,17 @@ fn opengl_textures() {
 
 	queue.pipeline_mut().unwrap().camera_data().set_data(vec![camera.create()].into());
 
-	while queue.is_active() {
-		queue.process();
-	}
+	let _ = event_loop.run(move |event: Event<()>, event_loop| {
+		if let Event::WindowEvent { event, .. } = event {
+			match event {
+				WindowEvent::CloseRequested => {
+					event_loop.exit();
+				}
+				WindowEvent::RedrawRequested => {
+					queue.process();
+				}
+				_ => (),
+			}
+		}
+	});
 }

@@ -20,7 +20,6 @@ fn opengl_open_window() {
 		println!("Delta time: {}", delta.as_secs_f32() * 1000.0);
 	});
 
-	//queue.process();
 	let _ = event_loop.run(move |event: Event<()>, event_loop| {
 		if let Event::WindowEvent { event, .. } = event {
 			match event {
@@ -29,23 +28,8 @@ fn opengl_open_window() {
 				}
 				WindowEvent::RedrawRequested => {
 					queue.process();
-					// gl.clear(glow::COLOR_BUFFER_BIT);
-					// gl.draw_arrays(glow::TRIANGLES, 0, 3);
-					// gl_surface.swap_buffers(&gl_context).unwrap();
-				}
-				WindowEvent::KeyboardInput { device_id, event, is_synthetic } => {
-					println!("{:?}: {:?}", device_id, event);
-				}
-				WindowEvent::CursorMoved { device_id, position } => {
-					println!("{:?}: {:?}", device_id, position)
-				}
-				WindowEvent::MouseInput { device_id, state, button } => {
-					println!("{:?}: {:?} {:?}", device_id, button, state)
-				}
-				WindowEvent::MouseWheel { device_id, delta, phase } => {
-					println!("{:?}: {:?} {:?}", device_id, delta, phase)
-				}
-				_ => (),
+				},
+				_ => ()
 			}
 		}
 	});
