@@ -1,6 +1,6 @@
 use std::{path::{Path, PathBuf}, str::FromStr};
 
-use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::UiElement, resources::{ResText, ResTexture2D}};
+use fatum::{Application, ApplicationInfo, CoreEngine, OutputKind, components::UiElement, nodes::UiWindow, resources::{ResText, ResTexture2D}};
 use fatum_graphics::{platform::{GraphicsPlatform, opengl::OpenGlPlatform}, render::PipelineKind};
 use fatum_resources::ResourcePlatform;
 use fatum_scene::{Node, SceneGraph};
@@ -26,18 +26,24 @@ impl<P: GraphicsPlatform + ResourcePlatform + Clone> Application<P> for GuiAppli
 		{
 			let mut scene = scene.write().unwrap();
 
-			let mut element = Node::new();
-			element.add_component(Box::new(UiElement::new(|delta, element, ctx| {
-				egui::Window::new("Hello").show(ctx, |ui| {
-					ui.heading("Meow!");
+			let window1 = UiWindow::new(String::from("Window 1"), |_, _, ui| {
+				ui.heading("Meow!");
 
-					if ui.button("Awoo?").clicked() {
-						log::info!("Awoooooooooooo");
-					}
-				});
-			})));
+				if ui.button("Awoo?").clicked() {
+					log::info!("Awoooooooooooo");
+				}
+			});
 
-			scene.add_node(element, None);
+			let window2 = UiWindow::new(String::from("Window 2"), |_, _, ui| {
+				ui.heading("Hallo!");
+
+				if ui.link("waoww").clicked() {
+					log::info!("O.O");
+				}
+			});
+
+			scene.add_node(window1, None);
+			scene.add_node(window2, None);
 		}
 
 		engine.scene_engine().set_scene(0, scene);

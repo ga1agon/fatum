@@ -105,19 +105,17 @@ impl<P> UiEngine<P> where P: GraphicsPlatform {
 			.collect();
 
 		if let Ok(scene) = scene.try_read() {
-			for node in &nodes {
-				let node = scene.node(*node)
-					.expect("Iterator returned a non-existing node");
+			if let Some(ui) = self.ui_glow.as_mut() {
+				ui.run(window, move |ctx| {
+					for node in &nodes {
+						let node = scene.node(*node)
+							.expect("Iterator returned a non-existing node");
 
-				if let Some(element) = node.component::<UiElement>() {
-					//element.draw(delta, frame);
-
-					if let Some(ui) = self.ui_glow.as_mut() {
-						ui.run(window, move |ctx| {
+						if let Some(element) = node.component::<UiElement>() {
 							element.draw(delta, ctx);
-						});
+						}
 					}
-				}
+				});
 			}
 		} else {
 			log::warn!("Could not get a read lock on scene {}; UI nodes will not be processed", queue_index);
